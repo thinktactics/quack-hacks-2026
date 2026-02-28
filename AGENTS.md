@@ -29,6 +29,7 @@ Skill tree app: explore local areas via *Waypoints* (location nodes).
 | lon | float | Indexed |
 | name | str | Display name |
 | children | list[int] | Child waypoint IDs (JSON) |
+| visited | bool | Whether the waypoint has been visited (default: false) |
 
 ## API Endpoints
 
