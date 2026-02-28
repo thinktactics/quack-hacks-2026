@@ -1,0 +1,65 @@
+import { type WaypointTree } from '@/api/waypoint'
+
+export const mockWaypointTree: WaypointTree = {
+  id: 1,
+  api_id: 'osm:node/123456',
+  lat: 40.7128,
+  lon: -74.006,
+  name: 'Home Base',
+  visited: true,
+  children: [2, 3],
+  children_nodes: [
+    {
+      id: 2,
+      api_id: 'osm:node/234567',
+      lat: 40.7138,
+      lon: -74.007,
+      name: 'Central Park',
+      visited: true,
+      children: [4, 5],
+      children_nodes: [
+        {
+          id: 4,
+          api_id: 'osm:node/345678',
+          lat: 40.7148,
+          lon: -74.008,
+          name: 'Belvedere Castle',
+          visited: false,
+          children: [],
+          children_nodes: [],
+        },
+        {
+          id: 5,
+          api_id: 'osm:node/456789',
+          lat: 40.7158,
+          lon: -74.009,
+          name: 'Strawberry Fields',
+          visited: false,
+          children: [],
+          children_nodes: [],
+        },
+      ],
+    },
+    {
+      id: 3,
+      api_id: 'osm:node/567890',
+      lat: 40.7118,
+      lon: -74.005,
+      name: 'Brooklyn Bridge',
+      visited: false,
+      children: [6],
+      children_nodes: [
+        {
+          id: 6,
+          api_id: 'osm:node/678901',
+          lat: 40.7108,
+          lon: -74.004,
+          name: 'DUMBO',
+          visited: false,
+          children: [],
+          children_nodes: [],
+        },
+      ],
+    },
+  ],
+}
