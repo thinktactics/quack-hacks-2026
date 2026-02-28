@@ -20,8 +20,8 @@ const nodeTypes = { waypoint: WaypointNode }
 const RADIUS = 170 // px per depth level
 
 function countLeaves(node: WaypointTree): number {
-  if (node.children_nodes.length === 0) return 1
-  return node.children_nodes.reduce((sum, c) => sum + countLeaves(c), 0)
+  if (node.children.length === 0) return 1
+  return node.children.reduce((sum, c) => sum + countLeaves(c), 0)
 }
 
 function buildGraph(
@@ -73,11 +73,11 @@ function buildGraph(
     })
   }
 
-  if (node.children_nodes.length === 0) return
+  if (node.children.length === 0) return
 
-  const totalLeaves = node.children_nodes.reduce((sum, c) => sum + countLeaves(c), 0)
+  const totalLeaves = node.children.reduce((sum, c) => sum + countLeaves(c), 0)
   let cursor = startAngle
-  node.children_nodes.forEach((child, i) => {
+  node.children.forEach((child, i) => {
     const span = (countLeaves(child) / totalLeaves) * (endAngle - startAngle)
     // Root's direct children each get a new color; deeper nodes inherit
     const childColorIdx = depth === 0 ? i : colorIdx

@@ -10,14 +10,9 @@ const USER_ID = 1
 /** Marks a node as visited and splices in new children — single recursive pass. */
 function applyVisited(node: WaypointTree, id: number, newChildren: WaypointTree[]): WaypointTree {
   if (node.id === id) {
-    return {
-      ...node,
-      visited: true,
-      children: [...node.children, ...newChildren.map((c) => c.id)],
-      children_nodes: [...node.children_nodes, ...newChildren],
-    }
+    return { ...node, visited: true, children: [...node.children, ...newChildren] }
   }
-  return { ...node, children_nodes: node.children_nodes.map((c) => applyVisited(c, id, newChildren)) }
+  return { ...node, children: node.children.map((c) => applyVisited(c, id, newChildren)) }
 }
 
 export function App() {

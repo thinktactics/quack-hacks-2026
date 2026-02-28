@@ -7,8 +7,7 @@ export const mockWaypointTree: WaypointTree = {
   lon: -74.006,
   name: 'Home Base',
   visited: true,
-  children: [2, 3],
-  children_nodes: [
+  children: [
     {
       id: 2,
       api_id: 'osm:node/234567',
@@ -16,8 +15,7 @@ export const mockWaypointTree: WaypointTree = {
       lon: -74.007,
       name: 'Central Park',
       visited: true,
-      children: [4, 5],
-      children_nodes: [
+      children: [
         {
           id: 4,
           api_id: 'osm:node/345678',
@@ -26,7 +24,6 @@ export const mockWaypointTree: WaypointTree = {
           name: 'Belvedere Castle',
           visited: false,
           children: [],
-          children_nodes: [],
         },
         {
           id: 5,
@@ -36,7 +33,6 @@ export const mockWaypointTree: WaypointTree = {
           name: 'Strawberry Fields',
           visited: false,
           children: [],
-          children_nodes: [],
         },
       ],
     },
@@ -47,8 +43,7 @@ export const mockWaypointTree: WaypointTree = {
       lon: -74.005,
       name: 'Brooklyn Bridge',
       visited: false,
-      children: [6],
-      children_nodes: [
+      children: [
         {
           id: 6,
           api_id: 'osm:node/678901',
@@ -57,7 +52,6 @@ export const mockWaypointTree: WaypointTree = {
           name: 'DUMBO',
           visited: false,
           children: [],
-          children_nodes: [],
         },
       ],
     },

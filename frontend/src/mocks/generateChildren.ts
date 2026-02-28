@@ -27,6 +27,5 @@ export function generateMockChildren(parent: WaypointTree): WaypointTree[] {
     name: pickName(),
     visited: false,
     children: [],
-    children_nodes: [],
   }))
 }
