@@ -31,3 +31,19 @@ export async function getChildren(id: number): Promise<number[]> {
     }
     return res.json();
 }
+
+/**
+ * Mark a waypoint as visited on the server.
+ *
+ * Returns the updated Waypoint (with visited=true) or throws on failure.
+ */
+export async function waypoint_set_visited(wypt_id: number): Promise<Waypoint> {
+    const res = await fetch(`/api/waypoint/${wypt_id}/visited`, {
+        method: "PATCH",
+        body: JSON.stringify({ visited: true }),
+    });
+    if (!res.ok) {
+        throw new Error(`failed to mark waypoint ${wypt_id} visited: ${res.status}`);
+    }
+    return res.json();
+}
