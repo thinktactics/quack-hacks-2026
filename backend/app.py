@@ -5,8 +5,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from backend.models.base import Base
-from backend.models.user import User
-from backend.models.waypoint import Waypoint
 from backend.routes.user import user_bp
 from backend.routes.waypoint import waypoint_bp
 

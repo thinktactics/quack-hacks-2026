@@ -36,18 +36,12 @@ Skill tree app: explore local areas via *Waypoints* (location nodes).
 ### Current GET Routes
 
 - `GET /api/user/<id>`
-- `GET /api/user/<id>/root`
-- `GET /api/user/<id>/root/<root_id>`
 - `GET /api/waypoint/<id>`
-- `GET /api/waypoint/<id>/children`
-- `GET /api/waypoint/user/<user_id>/tree`
-- `GET /api/waypoint/user/<user_id>/waypoint/<waypoint_id>/children`
+- `GET /api/waypoint/tree/<user_id>`
 
 ### Current POST Routes
 
 - `POST /api/user`
-- `POST /api/waypoint`
-- `POST /api/waypoint/<id>/children/<child_id>`
 
 ### Current PATCH Routes
 
