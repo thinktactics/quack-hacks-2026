@@ -4,6 +4,7 @@ import requests
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 
+
 def query_nearby(
     lat: float,
     lon: float,
