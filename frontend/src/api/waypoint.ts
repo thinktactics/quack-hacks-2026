@@ -1,1 +1,33 @@
-// getWaypoint(id), getChildren(id) — HTTP calls to Flask /api/waypoint/*
+// HTTP client wrappers for /api/waypoint/*
+
+export interface Waypoint {
+    id: number;
+    visited: boolean;
+    api_id: string | null; // optional string reference from OSM
+    lat: number;
+    lon: number;
+    name: string;
+    children: number[];
+}
+
+/**
+ * Retrieve a waypoint by its ID.
+ */
+export async function getWaypoint(id: number): Promise<Waypoint> {
+    const res = await fetch(`/api/waypoint/${id}`);
+    if (!res.ok) {
+        throw new Error(`failed to fetch waypoint ${id}: ${res.status}`);
+    }
+    return res.json();
+}
+
+/**
+ * Get child waypoint IDs for a given waypoint.
+ */
+export async function getChildren(id: number): Promise<number[]> {
+    const res = await fetch(`/api/waypoint/${id}/children`);
+    if (!res.ok) {
+        throw new Error(`failed to fetch children for waypoint ${id}: ${res.status}`);
+    }
+    return res.json();
+}
