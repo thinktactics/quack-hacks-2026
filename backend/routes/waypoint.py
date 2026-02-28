@@ -22,7 +22,7 @@ def get_waypoint(waypoint_id: int) -> tuple[Response, int]:
 
 
 # GET /api/waypoint/tree/<user_id>
-@waypoint_bp.route("/waypoint/tree/<int:user_id>", methods=["GET"])
+@waypoint_bp.route("/tree/<int:user_id>", methods=["GET"])
 def get_tree_by_user(user_id: int) -> tuple[Response, int]:
     """Return the full waypoint tree for a user."""
     tree = get_waypoint_tree_for_user(g.db, user_id)
