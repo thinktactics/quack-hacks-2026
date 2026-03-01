@@ -72,7 +72,16 @@ export function WaypointPanel({ waypoint, isRoot, visiting, onVisited, onClose }
           </div>
           <div className="flex flex-col gap-1">
             <dt className="text-muted-foreground">Address</dt>
-            <dd className="text-foreground leading-snug">{address}</dd>
+            <dd className="leading-snug">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-[#034078] dark:text-[#5aacdf] underline underline-offset-2 hover:opacity-75 transition-opacity"
+              >
+                {address}
+              </a>
+            </dd>
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Status</dt>
