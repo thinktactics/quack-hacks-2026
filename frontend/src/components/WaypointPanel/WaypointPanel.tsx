@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { type WaypointTree } from '@/api/waypoint'
 import { categoryColor } from '@/lib/categoryColor'
+import { useIsDark } from '@/lib/useIsDark'
 
 interface Props {
   waypoint: WaypointTree
@@ -45,6 +46,7 @@ export function WaypointPanel({ waypoint, isRoot, visiting, journal, autoJournal
     if (autoJournal) setJournalMode(true)
   }, [autoJournal])
 
+  useIsDark()
   const dot = categoryColor(waypoint.category, waypoint.visited, isRoot)
   const label = isRoot ? 'start' : (waypoint.category ?? 'place')
 

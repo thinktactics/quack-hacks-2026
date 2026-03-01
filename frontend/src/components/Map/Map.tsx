@@ -134,6 +134,13 @@ export function Map({ tree, selectedId, panTarget, pulsingIds, fitTarget, loadin
     const observer = new MutationObserver(() => {
       const dark = document.documentElement.classList.contains('dark')
       tileLayerRef.current?.setUrl(tileUrl(dark))
+      flatRef.current.forEach((wp, i) => {
+        const marker = markersRef.current[i]
+        if (!marker) return
+        const pulse = pulsingIdsRef.current.has(wp.id) && !wp.visited
+        const selected = selectedIdRef.current !== null && wp.id === selectedIdRef.current
+        marker.setIcon(makeIcon(wp.category, wp.visited, wp.isRoot, pulse, selected))
+      })
     })
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
