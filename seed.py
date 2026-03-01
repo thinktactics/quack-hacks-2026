@@ -28,22 +28,6 @@ PROFILES = [
         "lon": -111.6646,
         "explore": False,
     },
-    {
-        "username": "coastal_sketcher",
-        "api_id": "seed/ca/santa-monica-pier",
-        "name": "Santa Monica Pier",
-        "lat": 34.0094,
-        "lon": -118.4973,
-        "explore": True,
-    },
-    {
-        "username": "alpine_hiker",
-        "api_id": "seed/chamonix/aiguille-midi",
-        "name": "Aiguille du Midi Cable Car",
-        "lat": 45.8789,
-        "lon": 6.8872,
-        "explore": False,
-    },
 ]
 
 
@@ -128,16 +112,15 @@ def seed() -> None:
                 {"root_waypoint_id": root["id"]},
             )
 
-            # Mark root visited
-            _api(
-                client,
-                "PATCH",
-                f"/api/waypoint/{root['id']}/visited",
-                {"visited": True},
-            )
-
             # Optionally discover and attach children via OSM
             if p["explore"]:
+                # Mark root visited only when it has children
+                _api(
+                    client,
+                    "PATCH",
+                    f"/api/waypoint/{root['id']}/visited",
+                    {"visited": True},
+                )
                 children = cast(
                     list[dict[str, Any]],
                     _api(
