@@ -3,6 +3,7 @@ import { type WaypointTree, getWaypointTree, setVisited, exploreWaypoint, prepar
 import { type User, getUser } from './api/user'
 import { saveJournalEntry, getJournalEntry } from './api/journal'
 import { Header } from './components/Header/Header'
+import { ALL_CATEGORIES, type Category } from './components/Header/CategoryFilter'
 import { Landing } from './components/Landing/Landing'
 import { Map } from './components/Map/Map'
 import { WaypointPanel } from './components/WaypointPanel/WaypointPanel'
@@ -36,6 +37,7 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarVisitId, setSidebarVisitId] = useState<number | null>(null)
   const [radius, setRadius] = useState(5000)
+  const [categories, setCategories] = useState<Category[]>([...ALL_CATEGORIES])
   const [fitTarget, setFitTarget] = useState<WaypointTree | null>(null)
 
   const [pageVisible, setPageVisible] = useState(true)
@@ -50,9 +52,11 @@ export function App() {
   const prefetchPromiseRef = useRef<Promise<void> | null>(null)
   const userIdRef = useRef(userId)
   const radiusRef = useRef(radius)
+  const categoriesRef = useRef(categories)
   const treeRef = useRef(tree)
   useEffect(() => { userIdRef.current = userId }, [userId])
   useEffect(() => { radiusRef.current = radius }, [radius])
+  useEffect(() => { categoriesRef.current = categories }, [categories])
   useEffect(() => { treeRef.current = tree }, [tree])
 
   function fetchTree(id: number) {
@@ -128,7 +132,7 @@ export function App() {
       const numChildren = treeRef.current?.id === waypoint.id ? 4 : Math.floor(Math.random() * 2) + 1
       prefetchPromiseRef.current = prepareChildren(
         userIdRef.current || 0, waypoint.lat, waypoint.lon,
-        radiusRef.current, numChildren,
+        radiusRef.current, numChildren, categoriesRef.current,
       )
         .then(childIds => { prefetchedChildIds.current[waypoint.id] = childIds })
         .catch(() => { /* silent — handleVisited falls back to inline explore */ })
@@ -160,7 +164,7 @@ export function App() {
         } else {
           // No pre-fetch available — explore inline as fallback
           const numChildren = waypoint.id === tree?.id ? 4 : Math.floor(Math.random() * 2) + 1
-          await exploreWaypoint(userId, waypoint.id, waypoint.lat, waypoint.lon, radius, numChildren)
+          await exploreWaypoint(userId, waypoint.id, waypoint.lat, waypoint.lon, radius, numChildren, categories)
         }
       }
       if (journalText)
@@ -221,7 +225,7 @@ export function App() {
         <Landing users={users} onUserSelect={handleUserSelect} />
       ) : (
         <div className="flex flex-col h-screen w-screen overflow-hidden">
-          <Header username={user?.username ?? '…'} userId={userId!} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} radius={radius} onRadiusChange={setRadius} onLogoClick={() => setUserId(null)} />
+          <Header username={user?.username ?? '…'} userId={userId!} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} radius={radius} onRadiusChange={setRadius} onLogoClick={() => setUserId(null)} categories={categories} onCategoriesChange={setCategories} />
           <main className="flex-1 relative overflow-hidden">
             {tree ? (
               <>

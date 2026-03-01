@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 
 import { type User } from '@/api/user'
+import { CategoryFilter, type Category } from './CategoryFilter'
 
 interface Props {
   username: string
@@ -20,9 +21,11 @@ interface Props {
   radius: number
   onRadiusChange: (meters: number) => void
   onLogoClick: () => void
+  categories: Category[]
+  onCategoriesChange: (categories: Category[]) => void
 }
 
-export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onToggleSidebar, radius, onRadiusChange, onLogoClick }: Props) {
+export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onToggleSidebar, radius, onRadiusChange, onLogoClick, categories, onCategoriesChange }: Props) {
   const [dark, setDark] = useState(() => localStorage.getItem('theme') !== 'light')
 
   useEffect(() => {
@@ -53,6 +56,7 @@ export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onT
           className="w-16 bg-transparent border border-border/40 hover:border-border px-2 py-0.5 text-center text-sm outline-none focus:border-border"
         />
         <span>km</span>
+        <CategoryFilter selected={categories} onChange={onCategoriesChange} />
       </div>
       <div className="flex items-center gap-4">
         <button

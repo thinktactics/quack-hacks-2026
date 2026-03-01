@@ -104,6 +104,7 @@ def query_nearby(
     lon: float,
     limit: int = 10,
     radius: int = 500,
+    categories=None,
 ) -> list[dict[str, Any]]:
     """
     Return up to `limit` closest named POI locations near (lat, lon).
@@ -150,7 +151,8 @@ def query_nearby(
         )
         zoom = max(1, round(16 - math.log2(max(current_radius, 500) / 500)))
 
-        for category in POI_CATEGORIES:
+        active_categories = categories if categories else POI_CATEGORIES
+        for category in active_categories:
             params = {
                 "q": category,
                 "lat": lat,

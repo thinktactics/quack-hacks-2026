@@ -76,11 +76,12 @@ export async function discoverNearby(
     lon: number,
     rad?: number,
     num?: number,
+    categories?: string[],
 ): Promise<Waypoint[]> {
     const res = await fetch('/api/waypoint/osm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat, lon, radius: rad ?? 500, num: num ?? 3 }),
+        body: JSON.stringify({ lat, lon, radius: rad ?? 500, num: num ?? 3, ...(categories ? { categories } : {}) }),
     })
     if (!res.ok) throw new Error(`Failed to discover nearby waypoints: ${res.status}`)
     return res.json() as Promise<Waypoint[]>
@@ -108,10 +109,11 @@ export async function prepareChildren(
     lon: number,
     rad?: number,
     num?: number,
+    categories?: string[],
 ): Promise<number[]> {
     const target = num ?? 3
     const { apiIds, names } = await getUserWaypointApiInfo(userId)
-    const waypoints = await discoverNearby(lat, lon, rad, target * 5)
+    const waypoints = await discoverNearby(lat, lon, rad, target * 5, categories)
     return waypoints
         .filter(w => {
             if (w.api_id && apiIds.has(w.api_id)) return false
@@ -129,8 +131,9 @@ export async function exploreWaypoint(
     lon: number,
     rad?: number,
     num?: number,
+    categories?: string[],
 ): Promise<Waypoint> {
-    const newIds = await prepareChildren(userId, lat, lon, rad, num)
+    const newIds = await prepareChildren(userId, lat, lon, rad, num, categories)
     if (newIds.length === 0) return getWaypoint(parentId)
     return addChildren(parentId, newIds)
 }

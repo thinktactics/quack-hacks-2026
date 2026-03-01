@@ -99,8 +99,9 @@ def create_from_osm() -> tuple[Response, int]:
 
     num = payload.get("num", 10)
     radius = int(payload.get("radius", 500))
+    categories = payload.get("categories", None)  # list of category strings or None for all
 
-    results = query_nearby(lat, lon, limit=num, radius=radius)
+    results = query_nearby(lat, lon, limit=num, radius=radius, categories=categories)
 
     created = []
     for r in results:
