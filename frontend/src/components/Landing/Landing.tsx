@@ -166,7 +166,7 @@ export function Landing({ users, onUserSelect }: Props) {
           BR@NCH
         </h1>
         <p className="text-xs tracking-[0.35em] uppercase text-[#034078]/40 dark:text-[#5aacdf]/40 font-mono">
-          Explore the world, one branch at a time.
+          Explore the world, one br@nch at a time.
         </p>
         <div className="mt-3">
           <DropdownMenu>
