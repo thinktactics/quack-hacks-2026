@@ -303,20 +303,21 @@ export function Landing({ users, onUserSelect, onUserCreated }: Props) {
               </div>
 
               {searchResults.length > 0 && (
-                <select
-                  value={selectedAddress?.name ?? ''}
-                  onChange={e => {
-                    const found = searchResults.find(result => result.name === e.target.value) ?? null
-                    setSelectedAddress(found)
-                  }}
-                  className="w-full bg-transparent border border-[#034078]/30 dark:border-[#5aacdf]/30 px-3 py-2 text-sm text-[#034078] dark:text-[#5aacdf] outline-none"
-                >
-                  {searchResults.map(result => (
-                    <option key={`${result.lat}-${result.lon}-${result.name}`} value={result.name}>
-                      {result.name}
-                    </option>
-                  ))}
-                </select>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="w-full text-left text-xs tracking-widest text-[#034078] dark:text-[#5aacdf] border border-[#034078]/30 dark:border-[#5aacdf]/30 hover:border-[#034078] dark:hover:border-[#5aacdf] px-3 py-2.5 transition-colors outline-none font-mono truncate">
+                    {selectedAddress?.name ?? 'Select address'}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" className="z-[2000] w-[min(88vw,26rem)]">
+                    {searchResults.map(result => (
+                      <DropdownMenuItem
+                        key={`${result.lat}-${result.lon}-${result.name}`}
+                        onSelect={() => setSelectedAddress(result)}
+                      >
+                        {result.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
 
               <button
