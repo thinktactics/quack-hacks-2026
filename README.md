@@ -18,19 +18,31 @@ Each waypoint is colour-coded by category (museum, restaurant, park, shop, café
 
 ## Running locally
 
+**First time — install dependencies:**
+
+```bash
+./setup.sh
+```
+
+Creates a Python virtualenv (`.venv`) and installs all Python and Node packages.
+
+**Seed the database** (run once, or any time you want a clean slate):
+
+```bash
+./reset.sh
+```
+
+Clears `__pycache__`, wipes the SQLite database, and reseeds it with demo users and waypoint trees.
+
+**Start the app:**
+
 ```bash
 ./run.sh
 ```
 
 Then open `http://localhost:5173`.
 
-That single command activates the Python virtualenv, starts the Flask backend on port 8000, and spins up the Vite dev server — both in parallel, both killed cleanly on Ctrl-C.
-
-**First run:** seed the database with example users and root waypoints:
-
-```bash
-python seed.py
-```
+Starts the Flask backend on port 8000 and the Vite dev server in parallel. Both are killed cleanly on Ctrl-C.
 
 ---
 
@@ -49,23 +61,31 @@ python seed.py
 ## Project structure
 
 ```
+setup.sh    Install Python venv + Node deps
+reset.sh    Clear __pycache__, wipe + reseed database
+run.sh      Start Flask (port 8000) + Vite (port 5173) in parallel
+run.py      Flask entry point (used by run.sh)
+seed.py     Demo data — users and waypoint trees
+
 backend/
-  models/     SQLAlchemy ORM — User, Waypoint
+  models/     SQLAlchemy ORM — User, Waypoint, JournalEntry
   db/         Query helpers (get, create, update)
-  routes/     Flask blueprints — /api/user, /api/waypoint
-  services/   OSM / Photon POI discovery
+  routes/     Flask blueprints — /api/user, /api/waypoint, /api/journal
+  services/   Photon POI discovery
   app.py      App factory
 
 frontend/src/
-  api/        Typed HTTP clients (user.ts, waypoint.ts)
+  api/        Typed HTTP clients (user.ts, waypoint.ts, journal.ts)
   components/
-    Map/          Leaflet map — markers, polylines, pulsing, selection
-    SidePanel/    Scrollable waypoint list (desktop)
-    WaypointPanel/ Detail card with address + visited action
-    Header/       Theme toggle, user switcher
+    Map/           Leaflet map — markers, polylines, pulsing, selection
+    SidePanel/     Scrollable waypoint list (desktop + mobile drawer)
+    WaypointPanel/ Bottom-sheet detail card with address, journal, visited action
+    Header/        Theme toggle, user switcher, radius control, CategoryFilter
+    Landing/       Login / sign-up screen with animated canvas background
+    ErrorModal/    Full-screen error overlay
   lib/
     categoryColor.ts  Single source of truth for category → colour
-  App.tsx     Root — orchestrates visit/explore flow and all shared state
+  App.tsx     Root — orchestrates visit/explore/journal flow and all shared state
 ```
 
 ---
@@ -76,20 +96,29 @@ frontend/src/
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/user/<id>` | Fetch user |
+| `GET` | `/api/user` | List all users |
+| `GET` | `/api/user/<id>` | Fetch user by ID |
 | `POST` | `/api/user` | Create user `{username, lat, lon}` |
 | `PATCH` | `/api/user/<id>/root` | Assign root waypoint `{root_waypoint_id}` |
+| `GET` | `/api/user/address-search?q=...` | Geocode an address via Nominatim |
 
 ### Waypoints
 
 | Method | Path | Description |
 |---|---|---|
 | `GET` | `/api/waypoint/<id>` | Fetch single waypoint |
-| `GET` | `/api/waypoint/tree/<user_id>` | Fetch full nested tree |
+| `GET` | `/api/waypoint/tree/<user_id>` | Fetch full nested tree for a user |
 | `POST` | `/api/waypoint` | Create waypoint `{lat, lon, name, api_id?}` |
 | `PATCH` | `/api/waypoint/<id>/visited` | Mark visited `{visited: bool}` |
 | `PATCH` | `/api/waypoint/<id>/children` | Attach children `{child_ids: int[]}` |
-| `POST` | `/api/waypoint/osm` | Discover nearby POIs `{lat, lon, num?}` |
+| `POST` | `/api/waypoint/osm` | Discover nearby POIs `{lat, lon, num?, radius?}` |
+
+### Journal
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/journal` | Save entry `{waypoint_id, user_id, content}` (idempotent) |
+| `GET` | `/api/journal/<waypoint_id>/<user_id>` | Fetch entry; 404 if none |
 
 ---
 
