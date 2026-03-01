@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { type WaypointTree, getWaypointTree, setVisited, exploreWaypoint } from './api/waypoint'
 import { type User, getUser } from './api/user'
 import { saveJournalEntry, getJournalEntry } from './api/journal'
@@ -37,6 +37,16 @@ export function App() {
   const [radius, setRadius] = useState(500)
   const [fitTarget, setFitTarget] = useState<WaypointTree | null>(null)
   const [loadingPos, setLoadingPos] = useState<{ lat: number; lon: number } | null>(null)
+
+  // Stable refs for pre-fetch (avoid stale closures in useCallback)
+  const prefetchedIds = useRef<Set<number>>(new Set())
+  const prefetchPromiseRef = useRef<Promise<void> | null>(null)
+  const userIdRef = useRef(userId)
+  const radiusRef = useRef(radius)
+  const treeRef = useRef(tree)
+  useEffect(() => { userIdRef.current = userId }, [userId])
+  useEffect(() => { radiusRef.current = radius }, [radius])
+  useEffect(() => { treeRef.current = tree }, [tree])
 
   function fetchTree(id: number) {
     setTree(null)
@@ -99,6 +109,24 @@ export function App() {
       return next
     })
     setPanTarget(waypoint)
+
+    // Pre-fetch children immediately when an unvisited leaf is selected,
+    // so they're already in the DB by the time the user taps "Visited!".
+    if (
+      !waypoint.visited &&
+      waypoint.children.length === 0 &&
+      !prefetchedIds.current.has(waypoint.id) &&
+      prefetchPromiseRef.current === null
+    ) {
+      const numChildren = treeRef.current?.id === waypoint.id ? 4 : Math.floor(Math.random() * 2) + 1
+      prefetchPromiseRef.current = exploreWaypoint(
+        userIdRef.current, waypoint.id, waypoint.lat, waypoint.lon,
+        radiusRef.current, numChildren,
+      )
+        .then(() => { prefetchedIds.current.add(waypoint.id) })
+        .catch(() => { /* silent — handleVisited falls back to inline explore */ })
+        .finally(() => { prefetchPromiseRef.current = null })
+    }
   }, [])
 
   async function handleVisited(waypoint: WaypointTree, journalText?: string) {
@@ -109,8 +137,16 @@ export function App() {
     try {
       await setVisited(waypoint.id)
       if (waypoint.children.length === 0) {
-        const numChildren = waypoint.id === tree?.id ? 4 : Math.floor(Math.random() * 2) + 1
-        await exploreWaypoint(userId, waypoint.id, waypoint.lat, waypoint.lon, radius, numChildren)
+        if (prefetchedIds.current.has(waypoint.id)) {
+          // Pre-fetch already completed — children are in the DB, fetchTree below surfaces them
+        } else if (prefetchPromiseRef.current !== null) {
+          // Pre-fetch still in flight — wait for it
+          await prefetchPromiseRef.current
+        } else {
+          // Pre-fetch wasn't triggered or failed silently — explore inline as fallback
+          const numChildren = waypoint.id === tree?.id ? 4 : Math.floor(Math.random() * 2) + 1
+          await exploreWaypoint(userId, waypoint.id, waypoint.lat, waypoint.lon, radius, numChildren)
+        }
       }
       if (journalText)
         await saveJournalEntry(waypoint.id, userId, journalText)
@@ -146,6 +182,8 @@ export function App() {
     setJournal(null)
     setSidebarOpen(false)
     setLoadingPos(null)
+    prefetchedIds.current = new Set()
+    prefetchPromiseRef.current = null
     setUserId(id)
   }
 
