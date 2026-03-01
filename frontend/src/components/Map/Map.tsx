@@ -178,10 +178,6 @@ export function Map({ tree, selectedId, panTarget, pulsingIds, fitTarget, loadin
       markersRef.current.push(marker)
     })
 
-    if (flat.length > 0 && selectedIdRef.current === null) {
-      const bounds = L.latLngBounds(flat.map(wp => [wp.lat, wp.lon] as L.LatLngTuple))
-      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 })
-    }
   }, [tree, onWaypointClick])
 
   // Update icons only when pulsingIds changes (no full rebuild)

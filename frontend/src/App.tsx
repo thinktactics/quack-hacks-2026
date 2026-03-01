@@ -78,7 +78,7 @@ export function App() {
     if (selectedId !== null) {
       const found = findInTree(tree, selectedId) ?? tree
       setSelected(found)
-      setPanTarget(found)
+      if (pulseParentId === null) setPanTarget(found)
     } else {
       setSelected(tree)
       setSelectedId(tree.id)
