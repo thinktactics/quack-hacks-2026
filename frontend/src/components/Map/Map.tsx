@@ -1,15 +1,7 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { type WaypointTree } from '@/api/waypoint'
-
-const CATEGORY_COLORS: Record<string, string> = {
-  museum: '#B48EAE',
-  restaurant: '#DE541E',
-  shop: '#6369D1',
-  attraction: '#FFA630',
-  park: '#69995D',
-  cafe: '#DE541E',
-}
+import { categoryColor } from '@/lib/categoryColor'
 
 interface FlatWaypoint {
   id: number
@@ -44,12 +36,9 @@ function flattenTree(
 }
 
 function makeIcon(category: string | null, visited: boolean, isRoot: boolean, pulse: boolean, selected: boolean): L.DivIcon {
-  const color = isRoot
-    ? '#034078'
-    : visited
-    ? '#9ca3af'
-    : (category ? (CATEGORY_COLORS[category] ?? '#DEDEE0') : '#DEDEE0')
-  const size = isRoot ? 28 : 20
+  const color = categoryColor(category, visited, isRoot)
+  const base = isRoot ? 28 : 20
+  const size = selected ? Math.round(base * 1.75) : base
   const cls = pulse ? 'marker-pulse' : ''
   const border = selected ? 'border:3px solid #ffffff;box-sizing:border-box;' : ''
   return L.divIcon({
@@ -105,6 +94,7 @@ export function Map({ tree, selectedId, panTarget, pulsingIds, onWaypointClick }
     const map = L.map(containerRef.current, {
       center: [tree.lat, tree.lon],
       zoom: 15,
+      zoomControl: false,
     })
 
     const dark = document.documentElement.classList.contains('dark')
@@ -190,10 +180,20 @@ export function Map({ tree, selectedId, panTarget, pulsingIds, onWaypointClick }
     })
   }, [selectedId])
 
-  // Pan to target when user clicks a node
+  // Pan to target when user clicks a node.
+  // On mobile, offset the center so the target lands at ~1/3 from the top
+  // rather than dead-center (which would be behind the bottom panel).
   useEffect(() => {
-    if (mapRef.current && panTarget)
-      mapRef.current.panTo([panTarget.lat, panTarget.lon], { animate: true })
+    const map = mapRef.current
+    if (!map || !panTarget) return
+    if (window.innerWidth < 768) {
+      const zoom = map.getZoom()
+      const targetPx = map.project([panTarget.lat, panTarget.lon], zoom)
+      const centerPx = targetPx.add([0, map.getSize().y / 6])
+      map.panTo(map.unproject(centerPx, zoom), { animate: true })
+    } else {
+      map.panTo([panTarget.lat, panTarget.lon], { animate: true })
+    }
   }, [panTarget])
 
   return <div ref={containerRef} className="w-full h-full" />

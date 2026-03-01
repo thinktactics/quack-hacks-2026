@@ -27,7 +27,7 @@ export function Header({ username, userId, users, onUserSwitch }: Props) {
 
   return (
     <header className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shrink-0">
-      <span className="text-xl font-bold tracking-widest text-[#034078]">BR@NCH</span>
+      <span className="text-xl font-bold tracking-widest text-[#034078] dark:text-[#5aacdf]">BR@NCH</span>
       <div className="flex items-center gap-4">
         <button
           onClick={() => setDark(d => !d)}
