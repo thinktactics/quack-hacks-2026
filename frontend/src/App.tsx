@@ -34,6 +34,7 @@ export function App() {
   const [journal, setJournal] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarVisitId, setSidebarVisitId] = useState<number | null>(null)
+  const [radius, setRadius] = useState(500)
 
   function fetchTree(id: number) {
     setTree(null)
@@ -102,8 +103,10 @@ export function App() {
     setVisiting(true)
     try {
       await setVisited(waypoint.id)
-      if (waypoint.children.length === 0)
-        await exploreWaypoint(userId, waypoint.id, waypoint.lat, waypoint.lon)
+      if (waypoint.children.length === 0) {
+        const numChildren = waypoint.id === tree?.id ? 4 : Math.floor(Math.random() * 2) + 1
+        await exploreWaypoint(userId, waypoint.id, waypoint.lat, waypoint.lon, radius, numChildren)
+      }
       if (journalText)
         await saveJournalEntry(waypoint.id, userId, journalText)
     } catch (err) {
@@ -143,7 +146,7 @@ export function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
-      <Header username={user?.username ?? '…'} userId={userId} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} />
+      <Header username={user?.username ?? '…'} userId={userId} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} radius={radius} onRadiusChange={setRadius} />
       <main className="flex-1 relative overflow-hidden">
         {tree ? (
           <>

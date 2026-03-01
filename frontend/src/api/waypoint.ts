@@ -80,7 +80,7 @@ export async function discoverNearby(
     const res = await fetch('/api/waypoint/osm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat, lon, rad: rad ?? 500, num: num ?? 3 }),
+        body: JSON.stringify({ lat, lon, radius: rad ?? 500, num: num ?? 3 }),
     })
     if (!res.ok) throw new Error(`Failed to discover nearby waypoints: ${res.status}`)
     return res.json() as Promise<Waypoint[]>

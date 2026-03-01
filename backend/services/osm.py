@@ -1,6 +1,7 @@
 """Photon API calls for POI discovery."""
 
 import math
+import random
 from typing import Any
 import requests
 from loguru import logger
@@ -15,8 +16,7 @@ from tenacity import (
 PHOTON_URL = "https://photon.komoot.io/api/"
 HEADERS = {"User-Agent": "BR@NCH/1.0 (Skill Tree Explorer)"}
 
-SEARCH_RADIUS = 5000  # Query with 5km radius to ensure results
-PER_CATEGORY_LIMIT = 20  # Request many results per category
+PER_CATEGORY_LIMIT = 5  # Request many results per category
 
 POI_CATEGORIES = ["restaurant", "park", "museum", "cafe", "shop", "attraction"]
 
@@ -102,6 +102,7 @@ def query_nearby(
     lat: float,
     lon: float,
     limit: int = 10,
+    radius: int = 500,
 ) -> list[dict[str, Any]]:
     """
     Return up to `limit` closest named POI locations near (lat, lon).
@@ -118,6 +119,9 @@ def query_nearby(
         Longitude of search center.
     limit : int, optional
         Maximum number of results to return (default: 10).
+    radius : int, optional
+        Initial search radius in meters (default: 500). Doubles up to 32 km if
+        too few results are found.
 
     Returns
     -------
@@ -134,79 +138,103 @@ def query_nearby(
     requests.HTTPError
         If any API request fails.
     """
+    MAX_RADIUS = 32_000  # 32 km hard cap
     seen_ids: set[str] = set()
     results: list[dict[str, Any]] = []
+    current_radius = radius
 
-    logger.info(f"Querying POIs near ({lat:.4f}, {lon:.4f}), limit={limit}")
+    while True:
+        logger.info(
+            f"Querying POIs near ({lat:.4f}, {lon:.4f}), limit={limit}, radius={current_radius}m"
+        )
+        zoom = max(1, round(16 - math.log2(max(current_radius, 500) / 500)))
 
-    for category in POI_CATEGORIES:
-        params = {
-            "q": category,
-            "lat": lat,
-            "lon": lon,
-            "limit": PER_CATEGORY_LIMIT,
-        }
+        for category in POI_CATEGORIES:
+            params = {
+                "q": category,
+                "lat": lat,
+                "lon": lon,
+                "limit": PER_CATEGORY_LIMIT,
+                "zoom": zoom,
+            }
 
-        try:
-            features = _fetch_category(params)
-            category_count = 0
+            try:
+                features = _fetch_category(params)
+                category_count = 0
 
-            for feature in features:
-                props = feature.get("properties", {})
-                geom = feature.get("geometry", {})
-                coords = geom.get("coordinates", [])
+                for feature in features:
+                    props = feature.get("properties", {})
+                    geom = feature.get("geometry", {})
+                    coords = geom.get("coordinates", [])
 
-                if len(coords) != 2:
-                    continue
+                    if len(coords) != 2:
+                        continue
 
-                osm_type = props.get("osm_type")
-                osm_id = props.get("osm_id")
-                name = props.get("name")
+                    osm_type = props.get("osm_type")
+                    osm_id = props.get("osm_id")
+                    name = props.get("name")
 
-                if not all([osm_type, osm_id, name]):
-                    continue
+                    if not all([osm_type, osm_id, name]):
+                        continue
 
-                poi_id = f"{osm_type}/{osm_id}"
-                if poi_id in seen_ids:
-                    continue
+                    poi_id = f"{osm_type}/{osm_id}"
+                    if poi_id in seen_ids:
+                        continue
 
-                # Calculate distance for sorting
-                poi_lat = coords[1]
-                poi_lon = coords[0]
-                distance = _haversine_distance(lat, lon, poi_lat, poi_lon)
+                    poi_lat = coords[1]
+                    poi_lon = coords[0]
+                    distance = _haversine_distance(lat, lon, poi_lat, poi_lon)
 
-                seen_ids.add(poi_id)
-                results.append(
-                    {
-                        "id": poi_id,
-                        "name": name,
-                        "lat": poi_lat,
-                        "lon": poi_lon,
-                        "distance": distance,
-                        "category": category,
-                    }
+                    if distance > current_radius:
+                        continue
+
+                    seen_ids.add(poi_id)
+                    results.append(
+                        {
+                            "id": poi_id,
+                            "name": name,
+                            "lat": poi_lat,
+                            "lon": poi_lon,
+                            "distance": distance,
+                            "category": category,
+                        }
+                    )
+                    category_count += 1
+
+                if category_count > 0:
+                    logger.info(f"  {category}: found {category_count} POIs")
+
+            except (requests.RequestException, RetryError) as e:
+                error_msg = (
+                    str(e.last_attempt.exception())
+                    if isinstance(e, RetryError)
+                    else str(e)
                 )
-                category_count += 1
+                logger.warning(
+                    f"  {category}: request failed ({type(e).__name__}: {error_msg})"
+                )
+                continue
 
-            if category_count > 0:
-                logger.info(f"  {category}: found {category_count} POIs")
+        if len(results) >= limit or current_radius >= MAX_RADIUS:
+            break
 
-        except (requests.RequestException, RetryError) as e:
-            error_msg = (
-                str(e.last_attempt.exception()) if isinstance(e, RetryError) else str(e)
-            )
-            logger.warning(
-                f"  {category}: request failed ({type(e).__name__}: {error_msg})"
-            )
-            continue
+        next_radius = min(current_radius * 2, MAX_RADIUS)
+        logger.info(
+            f"Only {len(results)} results at {current_radius}m, retrying at {next_radius}m"
+        )
+        current_radius = next_radius
 
-    # Sort all results by distance (closest first)
-    results.sort(key=lambda poi: poi["distance"])
-
-    # Remove distance field and return top N
+    # Randomly select up to limit results
+    sample = random.sample(results, min(limit, len(results)))
     final_results = [
-        {"id": poi["id"], "name": poi["name"], "lat": poi["lat"], "lon": poi["lon"], "category": poi["category"]}
-        for poi in results[:limit]
+        {
+            "id": poi["id"],
+            "name": poi["name"],
+            "lat": poi["lat"],
+            "lon": poi["lon"],
+            "category": poi["category"],
+        }
+        for poi in sample
     ]
 
     logger.info(

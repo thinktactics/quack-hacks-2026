@@ -1,6 +1,7 @@
 """Seed the database with demo users and waypoints."""
 
 import os
+import random
 from pathlib import Path
 from typing import Any, cast
 
@@ -18,7 +19,7 @@ PROFILES = [
         "name": "Times Square",
         "lat": 40.758896,
         "lon": -73.985130,
-        "explore": True,
+        "explore_depth": 2,
     },
     {
         "username": "desert_astronomer",
@@ -26,9 +27,20 @@ PROFILES = [
         "name": "Lowell Observatory",
         "lat": 35.2028,
         "lon": -111.6646,
-        "explore": False,
+        "explore_depth": 0,
+    },
+    {
+        "username": "hacker",
+        "api_id": "seed/nj/castle-point-terrace",
+        "name": "1 Castle Point Terrace",
+        "lat": 40.7453,
+        "lon": -74.0247,
+        "explore_depth": 0,
     },
 ]
+
+ROOT_TARGET = 4   # children for the root waypoint
+CHILD_TARGET = (1, 2)  # random range for all other waypoints
 
 
 def _api(
@@ -66,6 +78,61 @@ def _wipe_sqlite() -> None:
         logger.info(f"Deleted {path}")
 
 
+def _explore(
+    client: FlaskClient,
+    waypoint_id: int,
+    lat: float,
+    lon: float,
+    depth: int,
+    seen_api_ids: set[str],
+    seen_names: set[str],
+    target: int = ROOT_TARGET,
+) -> int:
+    """Mark waypoint visited, discover nearby POIs, attach up to target as children.
+
+    Recurses depth-1 for each child. Returns total nodes added (children + descendants).
+    """
+    if depth == 0:
+        return 0
+
+    _api(client, "PATCH", f"/api/waypoint/{waypoint_id}/visited", {"visited": True})
+
+    pool = cast(
+        list[dict[str, Any]],
+        _api(client, "POST", "/api/waypoint/osm", {"lat": lat, "lon": lon, "num": target}),
+    )
+
+    fresh = [
+        w for w in pool
+        if w.get("api_id") not in seen_api_ids and w["name"] not in seen_names
+    ]
+    children = fresh[:target]
+
+    if not children:
+        return 0
+
+    for w in children:
+        if w.get("api_id"):
+            seen_api_ids.add(w["api_id"])
+        seen_names.add(w["name"])
+
+    _api(
+        client,
+        "PATCH",
+        f"/api/waypoint/{waypoint_id}/children",
+        {"child_ids": [w["id"] for w in children]},
+    )
+
+    total = len(children)
+    for child in children:
+        total += _explore(
+            client, child["id"], child["lat"], child["lon"],
+            depth - 1, seen_api_ids, seen_names,
+            target=random.randint(*CHILD_TARGET),
+        )
+    return total
+
+
 def seed() -> None:
     setup_logging()
     _wipe_sqlite()
@@ -77,7 +144,7 @@ def seed() -> None:
 
     with app.test_client() as client:
         for p in PROFILES:
-            # Create user (no root yet)
+            # Create user
             user = cast(
                 dict[str, Any],
                 _api(
@@ -112,38 +179,18 @@ def seed() -> None:
                 {"root_waypoint_id": root["id"]},
             )
 
-            # Optionally discover and attach children via OSM
-            if p["explore"]:
-                # Mark root visited only when it has children
-                _api(
-                    client,
-                    "PATCH",
-                    f"/api/waypoint/{root['id']}/visited",
-                    {"visited": True},
-                )
-                children = cast(
-                    list[dict[str, Any]],
-                    _api(
-                        client,
-                        "POST",
-                        "/api/waypoint/osm",
-                        {"lat": p["lat"], "lon": p["lon"]},
-                    ),
-                )
-                child_ids = [w["id"] for w in children]
-                _api(
-                    client,
-                    "PATCH",
-                    f"/api/waypoint/{root['id']}/children",
-                    {"child_ids": child_ids},
+            depth = p["explore_depth"]
+            node_count = 1
+            if depth > 0:
+                seen_api_ids = {p["api_id"]}
+                seen_names = {p["name"]}
+                node_count += _explore(
+                    client, root["id"], p["lat"], p["lon"],
+                    depth, seen_api_ids, seen_names,
                 )
 
-            tree = cast(
-                dict[str, Any], _api(client, "GET", f"/api/waypoint/tree/{user['id']}")
-            )
-            node_count = 1 + len(tree.get("children", []))
             logger.success(
-                f"Seeded {p['username']} — root={root['id']} explored={p['explore']} nodes={node_count}"
+                f"Seeded {p['username']} — root={root['id']} depth={depth} nodes={node_count}"
             )
 
     logger.success("Seed complete.")
