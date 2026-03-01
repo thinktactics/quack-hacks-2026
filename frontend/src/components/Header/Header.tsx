@@ -15,9 +15,11 @@ interface Props {
   userId: number
   users: User[]
   onUserSwitch: (id: number) => void
+  sidebarOpen: boolean
+  onToggleSidebar: () => void
 }
 
-export function Header({ username, userId, users, onUserSwitch }: Props) {
+export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onToggleSidebar }: Props) {
   const [dark, setDark] = useState(() => localStorage.getItem('theme') !== 'light')
 
   useEffect(() => {
@@ -27,7 +29,16 @@ export function Header({ username, userId, users, onUserSwitch }: Props) {
 
   return (
     <header className="flex items-center justify-between px-4 py-3 bg-card border-b border-border shrink-0">
-      <span className="text-xl font-bold tracking-widest text-[#034078] dark:text-[#5aacdf]">BR@NCH</span>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onToggleSidebar}
+          className="md:hidden text-muted-foreground hover:text-foreground transition-colors border border-border/40 hover:border-border px-2 py-0.5"
+          aria-label="Toggle sidebar"
+        >
+          {sidebarOpen ? '✕' : '☰'}
+        </button>
+        <span className="text-xl font-bold tracking-widest text-[#034078] dark:text-[#5aacdf]">BR@NCH</span>
+      </div>
       <div className="flex items-center gap-4">
         <button
           onClick={() => setDark(d => !d)}

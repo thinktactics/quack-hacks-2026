@@ -7,6 +7,8 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.logging_config import setup_logging
 from backend.models.base import Base
+from backend.models.journal import JournalEntry  # noqa: F401 – ensures table is created
+from backend.routes.journal import journal_bp
 from backend.routes.user import user_bp
 from backend.routes.waypoint import waypoint_bp
 
@@ -41,6 +43,7 @@ def create_app() -> Flask:
 
     app.register_blueprint(user_bp)
     app.register_blueprint(waypoint_bp)
+    app.register_blueprint(journal_bp)
     logger.info("Registered API blueprints.")
 
     return app
