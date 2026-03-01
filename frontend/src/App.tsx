@@ -39,7 +39,7 @@ export function App() {
     try {
       await setVisited(id)
       if (selected.children.length === 0) {
-        await exploreWaypoint(id, selected.lat, selected.lon)
+        await exploreWaypoint(userId, selected.id, selected.lat, selected.lon)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')

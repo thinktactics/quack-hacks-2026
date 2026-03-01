@@ -28,7 +28,10 @@ def set_waypoint_visited(
 def create_waypoint(
     session: Session, api_id: str, lat: float, lon: float, name: str
 ) -> Waypoint:
-    """Create and persist a new waypoint."""
+    """Return existing waypoint by api_id if it exists, otherwise create and persist a new one."""
+    existing = session.query(Waypoint).filter(Waypoint.api_id == api_id).first()
+    if existing:
+        return existing
     waypoint = Waypoint(
         api_id=api_id, lat=lat, lon=lon, name=name, children=[], visited=False
     )
@@ -45,7 +48,8 @@ def add_children_to_waypoint(
     parent = get_waypoint(session, parent_id)
     if not parent:
         return None
-    parent.children.extend(child_ids)
+    existing = set(parent.children)
+    parent.children = parent.children + [cid for cid in child_ids if cid not in existing]
     flag_modified(parent, "children")
     session.commit()
     session.refresh(parent)
