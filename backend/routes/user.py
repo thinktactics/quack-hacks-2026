@@ -26,17 +26,21 @@ def create_user() -> tuple[Response, int]:
     """Create a user from request payload."""
     payload = request.get_json(silent=True) or {}
     username = payload.get("username")
+    lat = payload.get("lat")
+    lon = payload.get("lon")
     root_waypoint_id = payload.get("root_waypoint_id")
 
-    if not username or root_waypoint_id is None:
+    if not username or not lat or not lon or root_waypoint_id is None:
         return (
-            jsonify({"error": "username and root_waypoint_id are required"}),
+            jsonify({"error": "username, lat, lon, and root_waypoint_id are required"}),
             400,
         )
 
     user = create_user_query(
         g.db,
         username=str(username),
+        lat=float(lat),
+        lon=float(lon),
         root_waypoint_id=int(root_waypoint_id),
     )
     return jsonify(user.to_dict()), 201

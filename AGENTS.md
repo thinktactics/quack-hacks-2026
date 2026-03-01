@@ -16,6 +16,8 @@ Skill tree app: explore local areas via *Waypoints* (location nodes).
 | ----- | ---- | ----- |
 | id | int | Primary key |
 | username | str | Unique, indexed |
+| lat | float | User location latitude, indexed |
+| lon | float | User location longitude, indexed |
 | root_waypoint_id | int | FK → Waypoint |
 
 ### Waypoint
@@ -34,8 +36,8 @@ Skill tree app: explore local areas via *Waypoints* (location nodes).
 
 ### User Routes
 
-- `GET /api/user/<id>` — Fetch user by ID, returns `{id, username, root_waypoint_id}`
-- `POST /api/user` — Create user with `{username, root_waypoint_id}` (all required)
+- `GET /api/user/<id>` — Fetch user by ID, returns `{id, username, lat, lon, root_waypoint_id}`
+- `POST /api/user` — Create user with `{username, lat, lon, root_waypoint_id}` (all required)
 
 ### Waypoint Routes
 

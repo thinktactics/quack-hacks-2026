@@ -10,9 +10,11 @@ def get_user(session: Session, user_id: int) -> User | None:
     return session.query(User).filter(User.id == user_id).first()
 
 
-def create_user(session: Session, username: str, root_waypoint_id: int) -> User:
+def create_user(
+    session: Session, username: str, lat: float, lon: float, root_waypoint_id: int
+) -> User:
     """Create and persist a user with a root waypoint."""
-    user = User(username=username, root_waypoint_id=root_waypoint_id)
+    user = User(username=username, lat=lat, lon=lon, root_waypoint_id=root_waypoint_id)
     session.add(user)
     session.commit()
     session.refresh(user)

@@ -161,6 +161,8 @@ def seed_database() -> None:
                 "/api/user",
                 {
                     "username": profile.username,
+                    "lat": profile.lat,
+                    "lon": profile.lon,
                     "root_waypoint_id": root_id,
                 },
             )
