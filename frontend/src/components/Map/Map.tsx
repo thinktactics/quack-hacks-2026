@@ -88,7 +88,7 @@ export function Map({ tree, onWaypointClick }: Props) {
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync markers whenever tree changes (no re-centering)
+  // Sync markers and fit bounds whenever tree changes
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -108,6 +108,11 @@ export function Map({ tree, onWaypointClick }: Props) {
         .on('click', () => onWaypointClick(wp.node))
       markersRef.current.push(marker)
     })
+
+    if (flat.length > 0) {
+      const bounds = L.latLngBounds(flat.map(wp => [wp.lat, wp.lon] as L.LatLngTuple))
+      map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 })
+    }
   }, [tree, onWaypointClick])
 
   return <div ref={containerRef} className="w-full h-full" />
