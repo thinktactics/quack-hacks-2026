@@ -3,7 +3,7 @@
 export interface User {
     id: number;
     username: string;
-    root_waypoint_id: number;
+    root_waypoint_id: number | null;
 }
 
 /**
@@ -20,21 +20,26 @@ export async function getUser(id: number): Promise<User> {
     return res.json();
 }
 
-/**
- * Create a new user on the backend.
- *
- * @param username - desired username
- * @param password - plaintext password (will be hashed by server)
- * @returns created user object
- */
-export async function createUser(username: string, password: string): Promise<User> {
+export async function createUser(username: string, lat: number, lon: number): Promise<User> {
     const res = await fetch(`/api/user`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, lat, lon }),
     });
     if (!res.ok) {
         throw new Error(`failed to create user: ${res.status}`);
+    }
+    return res.json();
+}
+
+export async function assignRootWaypoint(userId: number, waypointId: number): Promise<User> {
+    const res = await fetch(`/api/user/${userId}/root`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ root_waypoint_id: waypointId }),
+    });
+    if (!res.ok) {
+        throw new Error(`failed to assign root waypoint for user ${userId}: ${res.status}`);
     }
     return res.json();
 }

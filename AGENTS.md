@@ -37,15 +37,17 @@ Skill tree app: explore local areas via *Waypoints* (location nodes).
 ### User Routes
 
 - `GET /api/user/<id>` — Fetch user by ID, returns `{id, username, lat, lon, root_waypoint_id}`
-- `POST /api/user` — Create user with `{username, lat, lon, root_waypoint_id}` (all required)
+- `POST /api/user` — Create user with `{username, lat, lon}`; `root_waypoint_id` defaults to `null`
+- `PATCH /api/user/<id>/root` — Assign root waypoint; body: `{root_waypoint_id: int}`
 
 ### Waypoint Routes
 
 - `GET /api/waypoint/<id>` — Fetch waypoint by ID, returns flat waypoint with child IDs
 - `GET /api/waypoint/tree/<user_id>` — Fetch nested waypoint tree for user (recursive children)
-- `PATCH /api/waypoint/<id>/visited` — Mark waypoint as visited
-  - Body: `{visited: bool}` (default: `true`)
-  - **Auto-discovery:** If `visited=true` and waypoint has no children, queries OSM for 1-3 nearby POIs (500m radius) and auto-creates child waypoints
+- `POST /api/waypoint` — Create a single waypoint; body: `{lat, lon, name, api_id?}`; returns created waypoint
+- `PATCH /api/waypoint/<id>/visited` — Mark waypoint as visited; body: `{visited: bool}` (default: `true`)
+- `PATCH /api/waypoint/<id>/children` — Add children to a waypoint; body: `{child_ids: int[]}`
+- `POST /api/waypoint/osm` — Query OSM and create waypoints; body: `{lat, lon, rad?, num?}`; creates and returns up to `num` new waypoints from nearby POIs
 
 ## Project Structure
 
@@ -53,15 +55,31 @@ Skill tree app: explore local areas via *Waypoints* (location nodes).
 backend/
   models/       → User, Waypoint (SQLAlchemy ORM)
   db/           → query functions (get, create, add, delete)
-  routes/       → Flask blueprints (user, waypoint)
-  services/     → OSM API calls (Overpass, Nominatim)
+  routes/       → Flask blueprints (user, waypoint) — simple CRUD only
+  services/     → OSM API calls (Overpass)
   app.py        → Flask init, blueprints
 frontend/src/
-  api/          → HTTP clients (user.ts, waypoint.ts)
-  components/   → Map.tsx (Leaflet or similar)
-  App.tsx       → Root component
+  api/
+    user.ts     → getUser, createUser, assignRootWaypoint
+    waypoint.ts → getWaypoint, getWaypointTree, setVisited,
+                  createWaypoint, addChildren, discoverNearby, exploreWaypoint
+  components/   → NodeGraph, WaypointDetail, Map (TBD)
+  App.tsx       → Root component; orchestrates visit + explore flow
   main.tsx      → Vite entry
 ```
+
+## Frontend Orchestration
+
+Business logic lives in `frontend/src/api/waypoint.ts`, not the backend:
+
+| Function | Description |
+|----------|-------------|
+| `createWaypoint(params)` | POST a single new waypoint |
+| `addChildren(parentId, childIds)` | Link child waypoints to a parent |
+| `discoverNearby(lat, lon, rad?, num?)` | Query OSM via backend, creates + returns new waypoints |
+| `exploreWaypoint(parentId, lat, lon, rad?, num?)` | Orchestrates `discoverNearby` → `addChildren`; returns updated parent |
+
+When a user marks a waypoint as visited and it has no children, `App.tsx` calls `exploreWaypoint` to auto-discover and attach nearby POIs.
 
 ## Setup
 

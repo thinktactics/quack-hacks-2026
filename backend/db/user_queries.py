@@ -11,11 +11,22 @@ def get_user(session: Session, user_id: int) -> User | None:
 
 
 def create_user(
-    session: Session, username: str, lat: float, lon: float, root_waypoint_id: int
+    session: Session, username: str, lat: float, lon: float, root_waypoint_id: int | None = None
 ) -> User:
-    """Create and persist a user with a root waypoint."""
+    """Create and persist a user, optionally with a root waypoint."""
     user = User(username=username, lat=lat, lon=lon, root_waypoint_id=root_waypoint_id)
     session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+def set_user_root(session: Session, user_id: int, waypoint_id: int) -> User | None:
+    """Assign a root waypoint to a user. Returns the updated user or None if not found."""
+    user = get_user(session, user_id)
+    if not user:
+        return None
+    user.root_waypoint_id = waypoint_id
     session.commit()
     session.refresh(user)
     return user

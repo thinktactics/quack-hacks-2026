@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { type WaypointTree, getWaypointTree, setVisited } from './api/waypoint'
+import { type WaypointTree, getWaypointTree, setVisited, exploreWaypoint } from './api/waypoint'
 import { NodeGraph } from './components/NodeGraph/NodeGraph'
 import { WaypointDetail } from './components/WaypointDetail/WaypointDetail'
 
@@ -21,9 +21,13 @@ export function App() {
   useEffect(() => { fetchTree() }, [])
 
   async function handleVisited(id: number) {
+    if (!selected) return
     setVisiting(true)
     try {
       await setVisited(id)
+      if (selected.children.length === 0) {
+        await exploreWaypoint(id, selected.lat, selected.lon)
+      }
       await fetchTree()
     } finally {
       setVisiting(false)

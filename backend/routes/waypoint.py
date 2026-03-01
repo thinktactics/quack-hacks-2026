@@ -1,9 +1,6 @@
 """Waypoint API routes."""
 
-import random
-
 from flask import Blueprint, g, jsonify, request, Response
-from loguru import logger
 
 from backend.db.waypoint_queries import (
     add_children_to_waypoint,
@@ -46,41 +43,63 @@ def set_visited(waypoint_id: int) -> tuple[Response, int]:
     waypoint = set_waypoint_visited(g.db, waypoint_id, visited)
     if not waypoint:
         return jsonify({"error": "Waypoint not found"}), 404
-
-    if visited and not waypoint.children:
-        new_ids: list[int] = []
-        try:
-            logger.info(
-                f"Waypoint {waypoint_id} marked visited with no children - querying OSM"
-            )
-            nearby = query_nearby(waypoint.lat, waypoint.lon, rad=500.0, limit=10)
-            logger.info(f"Found {len(nearby)} nearby POIs")
-
-            if nearby:
-                num_children = random.randint(1, min(3, len(nearby)))
-                selected = random.sample(nearby, num_children)
-                for poi in selected:
-                    try:
-                        child = create_waypoint(
-                            g.db, poi["id"], poi["lat"], poi["lon"], poi["name"]
-                        )
-                        new_ids.append(child.id)
-                        logger.info(f"Created child waypoint {child.id}: {child.name}")
-                    except Exception as child_error:
-                        logger.warning(
-                            f"Skipping POI due to create error: {child_error}"
-                        )
-            else:
-                logger.warning(f"No nearby POIs found for waypoint {waypoint_id}")
-        except Exception as e:
-            logger.error(f"OSM query failed for waypoint {waypoint_id}: {e}")
-
-        if new_ids:
-            updated = add_children_to_waypoint(g.db, waypoint_id, new_ids)
-            if updated:
-                waypoint = updated
-                logger.info(
-                    f"Successfully added {len(new_ids)} children to waypoint {waypoint_id}"
-                )
-
     return jsonify(waypoint.to_dict()), 200
+
+
+# POST /api/waypoint
+@waypoint_bp.route("", methods=["POST"])
+def create_single_waypoint() -> tuple[Response, int]:
+    """Create a single waypoint."""
+    payload = request.get_json(silent=True) or {}
+    lat = payload.get("lat")
+    lon = payload.get("lon")
+    name = payload.get("name")
+    api_id = payload.get("api_id", None)
+
+    if lat is None or lon is None or name is None:
+        return jsonify({"error": "lat, lon, and name are required"}), 400
+
+    waypoint = create_waypoint(g.db, api_id, lat, lon, name)
+    return jsonify(waypoint.to_dict()), 201
+
+
+# PATCH /api/waypoint/<id>/children
+@waypoint_bp.route("/<int:waypoint_id>/children", methods=["PATCH"])
+def add_children(waypoint_id: int) -> tuple[Response, int]:
+    """Add children to a waypoint."""
+    payload = request.get_json(silent=True) or {}
+    child_ids = payload.get("child_ids")
+
+    if child_ids is None or not isinstance(child_ids, list):
+        return jsonify({"error": "child_ids must be a list"}), 400
+
+    add_children_to_waypoint(g.db, waypoint_id, child_ids)
+    waypoint = get_waypoint_query(g.db, waypoint_id)
+    if not waypoint:
+        return jsonify({"error": "Waypoint not found"}), 404
+    return jsonify(waypoint.to_dict()), 200
+
+
+# POST /api/waypoint/osm
+@waypoint_bp.route("/osm", methods=["POST"])
+def create_from_osm() -> tuple[Response, int]:
+    """Query OSM for nearby POIs and create waypoints from the results."""
+    payload = request.get_json(silent=True) or {}
+    lat = payload.get("lat")
+    lon = payload.get("lon")
+
+    if lat is None or lon is None:
+        return jsonify({"error": "lat and lon are required"}), 400
+
+    rad = payload.get("rad", 500.0)
+    num = payload.get("num", 3)
+
+    results = query_nearby(lat, lon, rad=rad, limit=num)
+    results = results[:num]
+
+    created = []
+    for r in results:
+        waypoint = create_waypoint(g.db, api_id=str(r["id"]), lat=r["lat"], lon=r["lon"], name=r["name"])
+        created.append(waypoint.to_dict())
+
+    return jsonify(created), 201
