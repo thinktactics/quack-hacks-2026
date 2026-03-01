@@ -49,12 +49,26 @@ function makeIcon(category: string | null, visited: boolean, isRoot: boolean, pu
   })
 }
 
+function makeLoadingIcon(): L.DivIcon {
+  return L.divIcon({
+    className: '',
+    html: `<div style="position:relative;width:24px;height:24px;overflow:visible;">
+      <div class="explore-ping"></div>
+      <div class="explore-ping" style="animation-delay:0.75s"></div>
+      <div class="explore-ping" style="animation-delay:1.5s"></div>
+    </div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  })
+}
+
 interface Props {
   tree: WaypointTree
   selectedId: number | null
   panTarget: WaypointTree | null
   pulsingIds: Set<number>
   fitTarget: WaypointTree | null
+  loadingPos: { lat: number; lon: number } | null
   onWaypointClick: (waypoint: WaypointTree) => void
 }
 
@@ -78,12 +92,13 @@ function tileUrl(dark: boolean) {
     : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
 }
 
-export function Map({ tree, selectedId, panTarget, pulsingIds, fitTarget, onWaypointClick }: Props) {
+export function Map({ tree, selectedId, panTarget, pulsingIds, fitTarget, loadingPos, onWaypointClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const tileLayerRef = useRef<L.TileLayer | null>(null)
   const markersRef = useRef<L.Marker[]>([])
   const polylinesRef = useRef<L.Polyline[]>([])
+  const loadingMarkerRef = useRef<L.Marker | null>(null)
   const flatRef = useRef<FlatWaypoint[]>([])
   const pulsingIdsRef = useRef<Set<number>>(pulsingIds)
   const selectedIdRef = useRef<number | null>(selectedId)
@@ -191,6 +206,17 @@ export function Map({ tree, selectedId, panTarget, pulsingIds, fitTarget, onWayp
     ]
     map.fitBounds(L.latLngBounds(points), { padding: [80, 80], maxZoom: 15, animate: true })
   }, [fitTarget])
+
+  // Show/hide sonar loading marker while exploring a visited waypoint
+  useEffect(() => {
+    loadingMarkerRef.current?.remove()
+    loadingMarkerRef.current = null
+    const map = mapRef.current
+    if (!map || !loadingPos) return
+    const m = L.marker([loadingPos.lat, loadingPos.lon], { icon: makeLoadingIcon(), zIndexOffset: 1000 }).addTo(map)
+    loadingMarkerRef.current = m
+    return () => { m.remove(); loadingMarkerRef.current = null }
+  }, [loadingPos])
 
   // Pan to target when user clicks a node.
   // On mobile, offset the center so the target lands at ~1/3 from the top
