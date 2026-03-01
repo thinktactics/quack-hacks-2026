@@ -183,6 +183,7 @@ def query_nearby(
                         "lat": poi_lat,
                         "lon": poi_lon,
                         "distance": distance,
+                        "category": category,
                     }
                 )
                 category_count += 1
@@ -204,7 +205,7 @@ def query_nearby(
 
     # Remove distance field and return top N
     final_results = [
-        {"id": poi["id"], "name": poi["name"], "lat": poi["lat"], "lon": poi["lon"]}
+        {"id": poi["id"], "name": poi["name"], "lat": poi["lat"], "lon": poi["lon"], "category": poi["category"]}
         for poi in results[:limit]
     ]
 

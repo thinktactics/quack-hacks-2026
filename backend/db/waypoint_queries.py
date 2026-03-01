@@ -26,14 +26,14 @@ def set_waypoint_visited(
 
 
 def create_waypoint(
-    session: Session, api_id: str, lat: float, lon: float, name: str
+    session: Session, api_id: str, lat: float, lon: float, name: str, category: str | None = None
 ) -> Waypoint:
     """Return existing waypoint by api_id if it exists, otherwise create and persist a new one."""
     existing = session.query(Waypoint).filter(Waypoint.api_id == api_id).first()
     if existing:
         return existing
     waypoint = Waypoint(
-        api_id=api_id, lat=lat, lon=lon, name=name, children=[], visited=False
+        api_id=api_id, lat=lat, lon=lon, name=name, category=category, children=[], visited=False
     )
     session.add(waypoint)
     session.commit()
@@ -80,6 +80,7 @@ def _build_tree(session: Session, waypoint_id: int, seen: set[int]) -> TreeDict 
         "lat": waypoint.lat,
         "lon": waypoint.lon,
         "name": waypoint.name,
+        "category": waypoint.category,
     }
     return node
 

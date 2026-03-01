@@ -30,20 +30,22 @@ export function WaypointPanel({ waypoint, visiting, onVisited, onClose }: Props)
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — mobile only */}
       <div
-        className="fixed inset-0 z-[2000] bg-black/40"
+        className="md:hidden fixed inset-0 z-[2000] bg-black/40"
         onClick={() => !visiting && onClose()}
       />
 
-      {/* Bottom sheet */}
-      <div className="fixed bottom-0 left-0 right-0 z-[2001] bg-card border-t border-border rounded-t-2xl shadow-2xl p-5 pb-10">
-        {/* Drag handle */}
-        <div className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto mb-4" />
+      {/* Panel: bottom sheet on mobile, fixed corner card on desktop */}
+      <div className="fixed z-[2001] bg-card border-border shadow-2xl p-5
+        bottom-0 left-0 right-0 border-t pb-10
+        md:top-auto md:bottom-4 md:right-4 md:left-auto md:w-80 md:border md:pb-5">
+        {/* Drag handle — mobile only */}
+        <div className="md:hidden w-10 h-1 bg-muted-foreground/30 mx-auto mb-4" />
 
-        {/* Close button */}
+        {/* Close button — mobile only */}
         <button
-          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground leading-none"
+          className="md:hidden absolute top-4 right-4 text-muted-foreground hover:text-foreground leading-none"
           onClick={() => !visiting && onClose()}
           aria-label="Close"
         >
@@ -51,7 +53,7 @@ export function WaypointPanel({ waypoint, visiting, onVisited, onClose }: Props)
         </button>
 
         {/* Name */}
-        <h2 className="text-lg font-bold text-foreground mb-3 pr-6">{waypoint.name}</h2>
+        <h2 className="text-lg font-bold text-foreground mb-3 pr-6 md:pr-0">{waypoint.name}</h2>
 
         {/* Details */}
         <dl className="space-y-2 text-sm mb-5">
@@ -69,7 +71,7 @@ export function WaypointPanel({ waypoint, visiting, onVisited, onClose }: Props)
           </div>
           <div className="flex justify-between gap-4">
             <dt className="text-muted-foreground">Status</dt>
-            <dd className={waypoint.visited ? 'text-muted-foreground' : 'text-amber-400 font-medium'}>
+            <dd className={waypoint.visited ? 'text-muted-foreground' : 'text-[#034078] font-medium'}>
               {waypoint.visited ? 'Visited' : 'Not visited'}
             </dd>
           </div>
@@ -78,7 +80,7 @@ export function WaypointPanel({ waypoint, visiting, onVisited, onClose }: Props)
         {/* Visited button */}
         {!waypoint.visited && (
           <button
-            className="w-full rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-black font-bold py-3 text-base transition-colors"
+            className="w-full bg-[#034078] hover:bg-[#0a5599] active:bg-[#022d56] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 text-base transition-colors"
             disabled={visiting}
             onClick={() => onVisited(waypoint.id)}
           >

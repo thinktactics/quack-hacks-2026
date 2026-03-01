@@ -25,7 +25,7 @@ export function WaypointNode({ data }: { data: WaypointNodeData }) {
     <div
       className={cn(
         'px-3 py-2 rounded-lg border-2 text-xs font-medium w-[90px] text-center leading-snug select-none cursor-pointer transition-colors',
-        data.isRoot && 'border-amber-400 bg-amber-950 text-amber-200 shadow-[0_0_0_3px_rgba(251,191,36,0.2)] font-bold',
+        data.isRoot && 'border-[#034078] bg-[#001629] text-[#90b8d8] shadow-[0_0_0_3px_rgba(3,64,120,0.3)] font-bold',
         !data.isRoot && data.visited && 'bg-card text-muted-foreground',
       )}
       style={style}

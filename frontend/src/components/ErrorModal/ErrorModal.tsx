@@ -15,7 +15,7 @@ export function ErrorModal({ message, onReload }: Props) {
           <h2 className="text-lg font-bold text-foreground">Something went wrong</h2>
           <p className="text-sm text-muted-foreground leading-relaxed">{message}</p>
           <button
-            className="w-full rounded-xl bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-black font-bold py-3 text-base transition-colors"
+            className="w-full rounded-xl bg-[#034078] hover:bg-[#0a5599] active:bg-[#022d56] text-white font-bold py-3 text-base transition-colors"
             onClick={onReload}
           >
             Reload

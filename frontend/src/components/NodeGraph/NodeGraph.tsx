@@ -63,7 +63,7 @@ function buildGraph(
     const edgeColor =
       colorIdx >= 0
         ? BRANCH_COLORS[colorIdx % BRANCH_COLORS.length].border
-        : '#f59e0b' // amber for root → first-level edges
+        : '#034078' // blue for root → first-level edges
     edges.push({
       id: `${parentId}-${node.id}`,
       source: parentId,
@@ -129,7 +129,7 @@ export function NodeGraph({ tree, onNodeClick }: NodeGraphProps) {
         <Controls />
         <MiniMap
           nodeColor={(n) => {
-            if (n.data.isRoot) return '#f59e0b'
+            if (n.data.isRoot) return '#034078'
             if (n.data.visited) return '#374151'
             const idx = (n.data.colorIdx as number) ?? 0
             return BRANCH_COLORS[idx % BRANCH_COLORS.length].border

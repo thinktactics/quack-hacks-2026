@@ -8,6 +8,7 @@ export interface Waypoint {
     name: string;
     children: number[];
     visited: boolean;
+    category: string | null;
 }
 
 export interface WaypointTree {
@@ -18,6 +19,7 @@ export interface WaypointTree {
     name: string;
     children: WaypointTree[];
     visited: boolean;
+    category: string | null;
 }
 
 export async function getWaypoint(id: number): Promise<Waypoint> {
