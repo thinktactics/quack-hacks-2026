@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { type WaypointTree, getWaypointTree, setVisited, exploreWaypoint } from './api/waypoint'
+import { type WaypointTree, getWaypointTree, setVisited, exploreWaypoint, prepareChildren, addChildren } from './api/waypoint'
 import { type User, getUser } from './api/user'
 import { saveJournalEntry, getJournalEntry } from './api/journal'
 import { Header } from './components/Header/Header'
@@ -39,10 +39,14 @@ export function App() {
   const [fitTarget, setFitTarget] = useState<WaypointTree | null>(null)
 
   const [pageVisible, setPageVisible] = useState(true)
-  const [loadingPos, setLoadingPos] = useState<{ lat: number; lon: number } | null>(null)
+  const [loadingPos, setLoadingPos] = useState<{
+    lat: number; lon: number
+    category: string | null; visited: boolean; isRoot: boolean
+  } | null>(null)
 
   // Stable refs for pre-fetch (avoid stale closures in useCallback)
-  const prefetchedIds = useRef<Set<number>>(new Set())
+  // Maps waypointId → created-but-not-yet-linked child IDs
+  const prefetchedChildIds = useRef<Record<number, number[]>>({})
   const prefetchPromiseRef = useRef<Promise<void> | null>(null)
   const userIdRef = useRef(userId)
   const radiusRef = useRef(radius)
@@ -118,15 +122,15 @@ export function App() {
     if (
       !waypoint.visited &&
       waypoint.children.length === 0 &&
-      !prefetchedIds.current.has(waypoint.id) &&
+      !(waypoint.id in prefetchedChildIds.current) &&
       prefetchPromiseRef.current === null
     ) {
       const numChildren = treeRef.current?.id === waypoint.id ? 4 : Math.floor(Math.random() * 2) + 1
-      prefetchPromiseRef.current = exploreWaypoint(
-        userIdRef.current || 0, waypoint.id, waypoint.lat, waypoint.lon,
+      prefetchPromiseRef.current = prepareChildren(
+        userIdRef.current || 0, waypoint.lat, waypoint.lon,
         radiusRef.current, numChildren,
       )
-        .then(() => { prefetchedIds.current.add(waypoint.id) })
+        .then(childIds => { prefetchedChildIds.current[waypoint.id] = childIds })
         .catch(() => { /* silent — handleVisited falls back to inline explore */ })
         .finally(() => { prefetchPromiseRef.current = null })
     }
@@ -137,17 +141,24 @@ export function App() {
     setSidebarVisitId(null)
     setPulseParentId(waypoint.id)
     setVisiting(true)
-    setLoadingPos({ lat: waypoint.lat, lon: waypoint.lon })
+    setLoadingPos({
+      lat: waypoint.lat, lon: waypoint.lon,
+      category: waypoint.category, visited: waypoint.visited,
+      isRoot: tree !== null && waypoint.id === tree.id,
+    })
     try {
       await setVisited(waypoint.id)
       if (waypoint.children.length === 0) {
-        if (prefetchedIds.current.has(waypoint.id)) {
-          // Pre-fetch already completed — children are in the DB, fetchTree below surfaces them
-        } else if (prefetchPromiseRef.current !== null) {
-          // Pre-fetch still in flight — wait for it
-          await prefetchPromiseRef.current
+        // Wait for any in-flight pre-fetch before deciding what to do
+        if (prefetchPromiseRef.current !== null) await prefetchPromiseRef.current
+
+        const childIds = prefetchedChildIds.current[waypoint.id]
+        if (childIds !== undefined) {
+          // Pre-fetch completed — link the already-created children now
+          delete prefetchedChildIds.current[waypoint.id]
+          if (childIds.length > 0) await addChildren(waypoint.id, childIds)
         } else {
-          // Pre-fetch wasn't triggered or failed silently — explore inline as fallback
+          // No pre-fetch available — explore inline as fallback
           const numChildren = waypoint.id === tree?.id ? 4 : Math.floor(Math.random() * 2) + 1
           await exploreWaypoint(userId, waypoint.id, waypoint.lat, waypoint.lon, radius, numChildren)
         }
@@ -186,7 +197,7 @@ export function App() {
     setJournal(null)
     setSidebarOpen(false)
     setLoadingPos(null)
-    prefetchedIds.current = new Set()
+    prefetchedChildIds.current = {}
     prefetchPromiseRef.current = null
     setUserId(id)
   }

@@ -100,6 +100,28 @@ async function getUserWaypointApiInfo(userId: number): Promise<{ apiIds: Set<str
     return { apiIds, names }
 }
 
+// Discover and create child waypoints near (lat, lon) without linking them to a parent.
+// Returns the IDs of the created waypoints. Call addChildren() to link them later.
+export async function prepareChildren(
+    userId: number,
+    lat: number,
+    lon: number,
+    rad?: number,
+    num?: number,
+): Promise<number[]> {
+    const target = num ?? 3
+    const { apiIds, names } = await getUserWaypointApiInfo(userId)
+    const waypoints = await discoverNearby(lat, lon, rad, target * 5)
+    return waypoints
+        .filter(w => {
+            if (w.api_id && apiIds.has(w.api_id)) return false
+            if (names.has(w.name)) return false
+            return true
+        })
+        .slice(0, target)
+        .map(w => w.id)
+}
+
 export async function exploreWaypoint(
     userId: number,
     parentId: number,
@@ -108,20 +130,7 @@ export async function exploreWaypoint(
     rad?: number,
     num?: number,
 ): Promise<Waypoint> {
-    const target = num ?? 3
-    const { apiIds, names } = await getUserWaypointApiInfo(userId)
-
-    // fetch a large pool so deduplication filtering still leaves enough candidates
-    const waypoints = await discoverNearby(lat, lon, rad, target * 5)
-    const newIds = waypoints
-        .filter(w => {
-            if (w.api_id && apiIds.has(w.api_id)) return false
-            if (names.has(w.name)) return false
-            return true
-        })
-        .slice(0, target)
-        .map(w => w.id)
-
+    const newIds = await prepareChildren(userId, lat, lon, rad, num)
     if (newIds.length === 0) return getWaypoint(parentId)
     return addChildren(parentId, newIds)
 }
