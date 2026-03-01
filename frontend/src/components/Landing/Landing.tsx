@@ -5,7 +5,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { type User } from '@/api/user'
+import { type AddressSearchResult, assignRootWaypoint, createUser, searchAddress, type User } from '@/api/user'
+import { createWaypoint } from '@/api/waypoint'
 
 const MAX_DEPTH = 6
 
@@ -77,12 +78,79 @@ function spawnRoot(canvas: HTMLCanvasElement, branches: Branch[]) {
 interface Props {
   users: User[]
   onUserSelect: (id: number) => void
+  onUserCreated: (user: User) => void
 }
 
-export function Landing({ users, onUserSelect }: Props) {
+export function Landing({ users, onUserSelect, onUserCreated }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDarkRef = useRef(false)
   const [dark, setDark] = useState(() => localStorage.getItem('theme') !== 'light')
+  const [mode, setMode] = useState<'login' | 'signup'>('login')
+  const [username, setUsername] = useState('')
+  const [addressQuery, setAddressQuery] = useState('')
+  const [searching, setSearching] = useState(false)
+  const [signingUp, setSigningUp] = useState(false)
+  const [searchResults, setSearchResults] = useState<AddressSearchResult[]>([])
+  const [selectedAddress, setSelectedAddress] = useState<AddressSearchResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleAddressSearch() {
+    const query = addressQuery.trim()
+    if (!query) return
+    setError(null)
+    setSearching(true)
+    try {
+      const results = await searchAddress(query)
+      setSearchResults(results)
+      setSelectedAddress(results[0] ?? null)
+      if (results.length === 0) setError('No addresses found. Try a broader query.')
+    } catch {
+      setError('Address search failed. Please try again.')
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  async function handleSignup() {
+    const trimmedUsername = username.trim()
+    if (!trimmedUsername) {
+      setError('Username is required.')
+      return
+    }
+    if (!selectedAddress) {
+      setError('Please search and select an address first.')
+      return
+    }
+
+    setError(null)
+    setSigningUp(true)
+    try {
+      const createdUser = await createUser(
+        trimmedUsername,
+        selectedAddress.lat,
+        selectedAddress.lon,
+      )
+
+      const rootWaypoint = await createWaypoint({
+        api_id: `root/${createdUser.id}/${Date.now()}`,
+        lat: selectedAddress.lat,
+        lon: selectedAddress.lon,
+        name: selectedAddress.name,
+      })
+
+      const updatedUser = await assignRootWaypoint(createdUser.id, rootWaypoint.id)
+      onUserCreated(updatedUser)
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Signup failed. Please try again.'
+      if (message.includes('409')) {
+        setError('That username already exists. Choose another one.')
+      } else {
+        setError('Signup failed. Please try again.')
+      }
+    } finally {
+      setSigningUp(false)
+    }
+  }
 
   // Sync dark state → DOM + ref
   useEffect(() => {
@@ -168,19 +236,105 @@ export function Landing({ users, onUserSelect }: Props) {
         <p className="text-xs tracking-[0.35em] uppercase text-[#034078]/40 dark:text-[#5aacdf]/40 font-mono">
           Explore the world, one br@nch at a time.
         </p>
-        <div className="mt-3">
-          <DropdownMenu>
-            <DropdownMenuTrigger className="text-xs tracking-widest uppercase text-[#034078] dark:text-[#5aacdf] border border-[#034078]/30 dark:border-[#5aacdf]/30 hover:border-[#034078] dark:hover:border-[#5aacdf] px-6 py-2.5 transition-colors outline-none font-mono">
-              Choose Explorer
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="center" className="z-[2000]">
-              {users.map(u => (
-                <DropdownMenuItem key={u.id} onSelect={() => onUserSelect(u.id)}>
-                  {u.username}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        <div className="mt-3 w-[min(92vw,28rem)] border border-[#034078]/30 dark:border-[#5aacdf]/30 bg-white/70 dark:bg-black/30 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              onClick={() => { setMode('login'); setError(null) }}
+              className={`px-3 py-1 text-xs tracking-widest uppercase border transition-colors font-mono ${
+                mode === 'login'
+                  ? 'text-[#034078] dark:text-[#5aacdf] border-[#034078] dark:border-[#5aacdf]'
+                  : 'text-[#034078]/70 dark:text-[#5aacdf]/70 border-[#034078]/30 dark:border-[#5aacdf]/30'
+              }`}
+            >
+              Login
+            </button>
+            <button
+              onClick={() => { setMode('signup'); setError(null) }}
+              className={`px-3 py-1 text-xs tracking-widest uppercase border transition-colors font-mono ${
+                mode === 'signup'
+                  ? 'text-[#034078] dark:text-[#5aacdf] border-[#034078] dark:border-[#5aacdf]'
+                  : 'text-[#034078]/70 dark:text-[#5aacdf]/70 border-[#034078]/30 dark:border-[#5aacdf]/30'
+              }`}
+            >
+              Sign up
+            </button>
+          </div>
+
+          {mode === 'login' ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger className="w-full text-xs tracking-widest uppercase text-[#034078] dark:text-[#5aacdf] border border-[#034078]/30 dark:border-[#5aacdf]/30 hover:border-[#034078] dark:hover:border-[#5aacdf] px-6 py-2.5 transition-colors outline-none font-mono">
+                {users.length > 0 ? 'Choose Explorer' : 'No users yet'}
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="z-[2000]">
+                {users.map(u => (
+                  <DropdownMenuItem key={u.id} onSelect={() => onUserSelect(u.id)}>
+                    {u.username}
+                  </DropdownMenuItem>
+                ))}
+                {users.length === 0 && (
+                  <DropdownMenuItem disabled>
+                    Create an account first
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <div className="flex flex-col gap-2 text-left">
+              <input
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                placeholder="Username"
+                className="w-full bg-transparent border border-[#034078]/30 dark:border-[#5aacdf]/30 px-3 py-2 text-sm text-[#034078] dark:text-[#5aacdf] outline-none"
+              />
+              <div className="flex gap-2">
+                <input
+                  value={addressQuery}
+                  onChange={e => setAddressQuery(e.target.value)}
+                  placeholder="Search address"
+                  className="flex-1 bg-transparent border border-[#034078]/30 dark:border-[#5aacdf]/30 px-3 py-2 text-sm text-[#034078] dark:text-[#5aacdf] outline-none"
+                />
+                <button
+                  onClick={handleAddressSearch}
+                  disabled={searching || !addressQuery.trim()}
+                  className="px-3 py-2 text-xs tracking-widest uppercase text-[#034078] dark:text-[#5aacdf] border border-[#034078]/30 dark:border-[#5aacdf]/30 disabled:opacity-60"
+                >
+                  {searching ? 'Searching…' : 'Search'}
+                </button>
+              </div>
+
+              {searchResults.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="w-full text-left text-xs tracking-widest text-[#034078] dark:text-[#5aacdf] border border-[#034078]/30 dark:border-[#5aacdf]/30 hover:border-[#034078] dark:hover:border-[#5aacdf] px-3 py-2.5 transition-colors outline-none font-mono truncate">
+                    {selectedAddress?.name ?? 'Select address'}
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="center" className="z-[2000] w-[min(88vw,26rem)]">
+                    {searchResults.map(result => (
+                      <DropdownMenuItem
+                        key={`${result.lat}-${result.lon}-${result.name}`}
+                        onSelect={() => setSelectedAddress(result)}
+                      >
+                        {result.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              <button
+                onClick={handleSignup}
+                disabled={signingUp || !username.trim() || !selectedAddress}
+                className="mt-1 px-3 py-2 text-xs tracking-widest uppercase text-[#034078] dark:text-[#5aacdf] border border-[#034078]/30 dark:border-[#5aacdf]/30 disabled:opacity-60"
+              >
+                {signingUp ? 'Creating…' : 'Create Account'}
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <p className="mt-2 text-xs text-[#034078] dark:text-[#5aacdf] font-mono">
+              {error}
+            </p>
+          )}
         </div>
       </div>
     </div>

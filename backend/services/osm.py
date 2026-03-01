@@ -243,3 +243,45 @@ def query_nearby(
         f"Returning {len(final_results)} closest POIs (sorted by distance) from {len(results)} total found"
     )
     return final_results
+
+
+def search_address(query: str, limit: int = 5) -> list[dict[str, Any]]:
+    """Return up to `limit` geocoded address matches from Photon."""
+    response = requests.get(
+        PHOTON_URL,
+        params={"q": query, "limit": limit},
+        headers=HEADERS,
+        timeout=10,
+    )
+    response.raise_for_status()
+    features = response.json().get("features", [])
+
+    results: list[dict[str, Any]] = []
+    for feature in features:
+        props = feature.get("properties", {})
+        geom = feature.get("geometry", {})
+        coords = geom.get("coordinates", [])
+        if len(coords) != 2:
+            continue
+
+        label_parts = [
+            props.get("name"),
+            props.get("street"),
+            props.get("housenumber"),
+            props.get("city"),
+            props.get("state"),
+            props.get("country"),
+        ]
+        label = ", ".join(str(part) for part in label_parts if part)
+        if not label:
+            continue
+
+        results.append(
+            {
+                "name": label,
+                "lat": coords[1],
+                "lon": coords[0],
+            }
+        )
+
+    return results
