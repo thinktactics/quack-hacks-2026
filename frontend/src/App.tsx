@@ -35,8 +35,10 @@ export function App() {
       if (selected.children.length === 0) {
         await exploreWaypoint(id, selected.lat, selected.lon)
       }
-      await fetchTree()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
+      await fetchTree()
       setVisiting(false)
       setSelected(null)
     }

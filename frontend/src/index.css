@@ -27,6 +27,15 @@
   }
 }
 
+@keyframes marker-pulse {
+  0%, 100% { transform: scale(1);    opacity: 1;   }
+  50%       { transform: scale(1.4); opacity: 0.75; }
+}
+
+.marker-pulse {
+  animation: marker-pulse 1.8s ease-in-out infinite;
+}
+
 @layer base {
   * {
     @apply border-border box-border;
