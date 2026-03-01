@@ -39,7 +39,7 @@ def main() -> None:
     debug = os.getenv("FLASK_DEBUG", "1") == "1"
 
     logger.info(f"Starting server on http://127.0.0.1:{port} (debug={debug})")
-    app.run(host="127.0.0.1", port=port, debug=debug)
+    app.run(host="127.0.0.1", port=port, debug=debug, use_reloader=False)
 
 
 if __name__ == "__main__":
