@@ -1,60 +1,43 @@
 # backend/services/
 
-External API integrations and dev tooling for BR@NCH.
+External API integrations for BR@NCH.
 
 ---
 
-## `osm.py` — OSM Location Lookup
+## `osm.py` — POI Discovery via Photon
 
-Wraps the Overpass API to find named POIs near a coordinate.
+Wraps the [Photon API](https://photon.komoot.io) (by Komoot) to find named points of interest near a coordinate. Photon is an open-source geocoder backed by OpenStreetMap data — no API key required.
 
-**Function:**
+**Main function:**
 
 ```python
-query_nearby(lat, lon, rad=500.0, limit=10) -> list[dict]
+query_nearby(lat, lon, limit=10, radius=500) -> list[dict]
 ```
 
-**Returns** a list of dicts, each with:
+**Returns** up to `limit` dicts randomly sampled from all POIs found within `radius` meters:
 
 | Key | Type | Description |
-| --- | ---- | ----------- |
-| `id` | str | OSM reference, e.g. `"node/123456"` or `"way/789"` |
-| `name` | str | Display name from OSM tags |
+|-----|------|-------------|
+| `id` | str | `"<osm_type>/<osm_id>"` e.g. `"node/123456"` |
+| `name` | str | Display name from OSM |
 | `lat` | float | Latitude |
 | `lon` | float | Longitude |
+| `category` | str | One of the 10 POI categories (see below) |
 
-**POI filter:** only returns nodes/ways tagged with `amenity`, `shop`, `tourism`, `leisure`, or `historic` — excludes streets, transit stops, and unnamed features.
+**POI categories queried** (one Photon request per category per radius pass):
 
-**Notes:**
-- Uses the public Overpass API (`overpass-api.de`) — no auth required, but subject to rate limits.
-- Timeout is 30 s per request; keep `rad` small (≤ 500 m) for dense areas to avoid large result sets.
-- Results are capped at `limit` after filtering for a `name` tag.
+`restaurant`, `park`, `museum`, `cafe`, `shop`, `attraction`, `natural`, `tourism`, `historic`, `leisure`
+
+Each category fetches up to 5 candidates (`PER_CATEGORY_LIMIT`). Results are deduplicated by OSM ID and filtered to the requested radius using the Haversine formula.
+
+**Radius expansion:** if fewer than `limit` results are found at the initial radius, the radius doubles (up to a 32 km hard cap) and the search retries automatically.
+
+**Retry logic:** each Photon request is retried up to 7 times with exponential backoff (2–30 s) using `tenacity`. Only server errors (5xx) and network failures trigger retries; 4xx responses fail immediately.
+
+**Sampling:** final results are randomly sampled (not sorted by distance) to encourage variety across repeated calls to the same location.
 
 ---
 
-## `seed.py` — Database Seed Script
+## Adding a new service
 
-Populates the database with test users and waypoints by calling the live Flask API. Requires the server to be running.
-
-**Usage:**
-
-```bash
-python -m backend.services.seed
-```
-
-**Seeded users:**
-
-| Username | Password | Tree |
-| -------- | -------- | ---- |
-| `alice` | `password123` | ~10 waypoints rooted in Hoboken, NJ |
-| `bob` | `password123` | ~10 waypoints rooted in San Francisco |
-| `carol` | `password123` | ~10 waypoints rooted in Chicago |
-| `dave` | `password123` | Root-only (London) — no children |
-| `eve` | `password123` | Placeholder root (Tokyo) — no meaningful tree |
-
-**Tree structure:** BFS expansion — each node gets 1–3 children via `query_nearby(..., rad=300)`, stopping at 10 total waypoints. Duplicate OSM IDs are skipped across the tree.
-
-**Notes:**
-- `root_waypoint_id` is non-nullable in the current schema, so `eve` (the "no waypoints" user) still receives a placeholder root waypoint. A schema change would be needed to support a truly rootless user.
-- The script exits with status `1` on any HTTP or runtime error and prints a descriptive message to stderr.
-- Safe to re-run only against a fresh/empty database — usernames are unique and will conflict on a second run.
+Drop a new `.py` module here and import it from `backend/routes/` as needed. Keep external HTTP calls in `services/`; DB logic belongs in `backend/db/`.

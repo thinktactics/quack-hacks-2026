@@ -221,7 +221,6 @@ export function App() {
                   visiting={visiting}
                   open={sidebarOpen}
                   onWaypointClick={handleWaypointClick}
-                  onVisited={handleVisited}
                   onVisitRequest={handleSidebarVisitRequest}
                 />
               </>
