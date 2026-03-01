@@ -17,9 +17,11 @@ interface Props {
   onUserSwitch: (id: number) => void
   sidebarOpen: boolean
   onToggleSidebar: () => void
+  radius: number
+  onRadiusChange: (meters: number) => void
 }
 
-export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onToggleSidebar }: Props) {
+export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onToggleSidebar, radius, onRadiusChange }: Props) {
   const [dark, setDark] = useState(() => localStorage.getItem('theme') !== 'light')
 
   useEffect(() => {
@@ -38,6 +40,18 @@ export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onT
           {sidebarOpen ? '✕' : '☰'}
         </button>
         <span className="text-xl font-bold tracking-widest text-[#034078] dark:text-[#5aacdf]">BR@NCH</span>
+      </div>
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <span>Radius:</span>
+        <input
+          type="number"
+          step="0.1"
+          min="0.1"
+          value={(radius / 1000).toFixed(1)}
+          onChange={e => onRadiusChange(parseFloat(e.target.value) * 1000)}
+          className="w-16 bg-transparent border border-border/40 hover:border-border px-2 py-0.5 text-center text-sm outline-none focus:border-border"
+        />
+        <span>km</span>
       </div>
       <div className="flex items-center gap-4">
         <button

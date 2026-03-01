@@ -98,8 +98,9 @@ def create_from_osm() -> tuple[Response, int]:
         return jsonify({"error": "lat and lon are required"}), 400
 
     num = payload.get("num", 10)
+    radius = int(payload.get("radius", 500))
 
-    results = query_nearby(lat, lon, limit=num)
+    results = query_nearby(lat, lon, limit=num, radius=radius)
 
     created = []
     for r in results:
