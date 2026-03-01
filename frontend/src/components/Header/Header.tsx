@@ -31,13 +31,13 @@ export function Header({ username, userId, users, onUserSwitch }: Props) {
       <div className="flex items-center gap-4">
         <button
           onClick={() => setDark(d => !d)}
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          className="text-xl text-muted-foreground hover:text-foreground transition-colors border border-border/40 hover:border-border px-2 py-0.5"
           aria-label="Toggle theme"
         >
           {dark ? '☀' : '☾'}
         </button>
         <DropdownMenu>
-          <DropdownMenuTrigger className="text-sm text-muted-foreground hover:text-foreground transition-colors outline-none">
+          <DropdownMenuTrigger className="text-sm text-muted-foreground hover:text-foreground transition-colors outline-none border border-border/40 hover:border-border px-2 py-0.5">
             {username}
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="z-[2000]">
