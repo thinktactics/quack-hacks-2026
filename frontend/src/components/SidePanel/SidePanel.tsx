@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { type WaypointTree } from '@/api/waypoint'
 import { cn } from '@/lib/utils'
 import { categoryColor } from '@/lib/categoryColor'
+import { useIsDark } from '@/lib/useIsDark'
 
 interface FlatItem {
   id: number
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function SidePanel({ tree, selectedId, visiting, open, onWaypointClick, onVisitRequest }: Props) {
+  useIsDark()
   const items = useMemo(() => {
     const out: FlatItem[] = []
     flatten(tree, true, 0, out)
