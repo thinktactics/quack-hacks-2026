@@ -6,6 +6,27 @@
 
 @layer base {
   :root {
+    --background: 210 20% 96%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --border: 214 32% 82%;
+    --input: 214 32% 82%;
+    --ring: 212 95% 45%;
+    --primary: 212 95% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 32% 88%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 90%;
+    --muted-foreground: 215 20% 45%;
+    --accent: 214 32% 88%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --radius: 0;
+  }
+
+  html.dark {
     --background: 222 47% 11%;
     --foreground: 210 40% 98%;
     --card: 222 47% 14%;
@@ -23,13 +44,13 @@
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62% 50%;
     --destructive-foreground: 210 40% 98%;
-    --radius: 0.5rem;
+    --radius: 0;
   }
 }
 
 @keyframes marker-pulse {
-  0%, 100% { transform: scale(1);    opacity: 1;   }
-  50%       { transform: scale(1.4); opacity: 0.75; }
+  0%, 100% { transform: scale(1);    }
+  50%       { transform: scale(1.4); }
 }
 
 .marker-pulse {
@@ -45,6 +66,6 @@
     @apply w-full bg-background text-foreground;
     height: 100%;
     overflow: hidden;
-    font-family: system-ui, sans-serif;
+    font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
   }
 }

@@ -18,6 +18,7 @@ class TreeDict(TypedDict):
     lat: float
     lon: float
     name: str
+    category: str | None
 
 
 class Waypoint(Base):
@@ -33,6 +34,7 @@ class Waypoint(Base):
     lat: Mapped[float] = mapped_column(Float, index=True)  # cached from api
     lon: Mapped[float] = mapped_column(Float, index=True)  # cached from api
     name: Mapped[str] = mapped_column(String(255))  # cached from api
+    category: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     def to_dict(self) -> dict:
         """Return a flat waypoint payload with child waypoint IDs."""
@@ -44,6 +46,7 @@ class Waypoint(Base):
             "lat": self.lat,
             "lon": self.lon,
             "name": self.name,
+            "category": self.category,
         }
 
     def __repr__(self) -> str:

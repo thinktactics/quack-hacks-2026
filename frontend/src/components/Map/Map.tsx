@@ -1,7 +1,15 @@
 import { useEffect, useRef } from 'react'
 import L from 'leaflet'
 import { type WaypointTree } from '@/api/waypoint'
-import { BRANCH_COLORS } from '@/components/NodeGraph/branchColors'
+
+const CATEGORY_COLORS: Record<string, string> = {
+  museum: '#B48EAE',
+  restaurant: '#DE541E',
+  shop: '#6369D1',
+  attraction: '#FFA630',
+  park: '#69995D',
+  cafe: '#DE541E',
+}
 
 interface FlatWaypoint {
   id: number
@@ -10,17 +18,16 @@ interface FlatWaypoint {
   lon: number
   visited: boolean
   api_id: string | null
-  colorIdx: number
+  category: string | null
   isRoot: boolean
-  parentVisited: boolean
+  parentId: number | null
   node: WaypointTree
 }
 
 function flattenTree(
   node: WaypointTree,
-  colorIdx: number,
   isRoot: boolean,
-  parentVisited: boolean,
+  parentId: number | null,
   result: FlatWaypoint[],
   seenApiIds: Set<string>,
 ): void {
@@ -29,27 +36,25 @@ function flattenTree(
 
   result.push({
     id: node.id, name: node.name, lat: node.lat, lon: node.lon,
-    visited: node.visited, api_id: node.api_id, colorIdx, isRoot, parentVisited, node,
+    visited: node.visited, api_id: node.api_id, category: node.category, isRoot, parentId, node,
   })
-  node.children.forEach((child, i) => {
-    flattenTree(child, isRoot ? i : colorIdx, false, node.visited, result, seenApiIds)
+  node.children.forEach(child => {
+    flattenTree(child, false, node.id, result, seenApiIds)
   })
 }
 
-function makeIcon(colorIdx: number, visited: boolean, isRoot: boolean, pulse: boolean): L.DivIcon {
+function makeIcon(category: string | null, visited: boolean, isRoot: boolean, pulse: boolean, selected: boolean): L.DivIcon {
   const color = isRoot
-    ? '#f59e0b'
+    ? '#034078'
     : visited
-    ? '#4b5563'
-    : BRANCH_COLORS[colorIdx % BRANCH_COLORS.length].border
-  const size = isRoot ? 20 : 14
-  const glow = !visited && !isRoot
-    ? BRANCH_COLORS[colorIdx % BRANCH_COLORS.length].glow
-    : 'transparent'
+    ? '#9ca3af'
+    : (category ? (CATEGORY_COLORS[category] ?? '#DEDEE0') : '#DEDEE0')
+  const size = isRoot ? 28 : 20
   const cls = pulse ? 'marker-pulse' : ''
+  const border = selected ? 'border:3px solid #ffffff;box-sizing:border-box;' : ''
   return L.divIcon({
     className: '',
-    html: `<div class="${cls}" style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid rgba(255,255,255,0.8);box-shadow:0 0 8px ${glow},0 2px 4px rgba(0,0,0,0.5);cursor:pointer;"></div>`,
+    html: `<div class="${cls}" style="width:${size}px;height:${size}px;border-radius:50%;background:${color};${border}box-shadow:0 2px 4px rgba(0,0,0,0.5);cursor:pointer;"></div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   })
@@ -57,13 +62,41 @@ function makeIcon(colorIdx: number, visited: boolean, isRoot: boolean, pulse: bo
 
 interface Props {
   tree: WaypointTree
+  selectedId: number | null
+  panTarget: WaypointTree | null
+  pulsingIds: Set<number>
   onWaypointClick: (waypoint: WaypointTree) => void
 }
 
-export function Map({ tree, onWaypointClick }: Props) {
+function drawPolylines(node: WaypointTree, map: L.Map, lines: L.Polyline[], seenIds: Set<number>): void {
+  if (seenIds.has(node.id)) return
+  seenIds.add(node.id)
+  node.children.forEach(child => {
+    const line = L.polyline([[node.lat, node.lon], [child.lat, child.lon]], {
+      color: 'hsl(var(--foreground))',
+      opacity: 1,
+      weight: 2,
+    }).addTo(map)
+    lines.push(line)
+    drawPolylines(child, map, lines, seenIds)
+  })
+}
+
+function tileUrl(dark: boolean) {
+  return dark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
+}
+
+export function Map({ tree, selectedId, panTarget, pulsingIds, onWaypointClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
+  const tileLayerRef = useRef<L.TileLayer | null>(null)
   const markersRef = useRef<L.Marker[]>([])
+  const polylinesRef = useRef<L.Polyline[]>([])
+  const flatRef = useRef<FlatWaypoint[]>([])
+  const pulsingIdsRef = useRef<Set<number>>(pulsingIds)
+  const selectedIdRef = useRef<number | null>(selectedId)
 
   // Initialize Leaflet map once
   useEffect(() => {
@@ -74,7 +107,8 @@ export function Map({ tree, onWaypointClick }: Props) {
       zoom: 15,
     })
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    const dark = document.documentElement.classList.contains('dark')
+    tileLayerRef.current = L.tileLayer(tileUrl(dark), {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
       subdomains: 'abcd',
       maxZoom: 19,
@@ -85,35 +119,82 @@ export function Map({ tree, onWaypointClick }: Props) {
     return () => {
       map.remove()
       mapRef.current = null
+      tileLayerRef.current = null
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync markers and fit bounds whenever tree changes
+  // Swap tile layer when theme changes
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const dark = document.documentElement.classList.contains('dark')
+      tileLayerRef.current?.setUrl(tileUrl(dark))
+    })
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+    return () => observer.disconnect()
+  }, [])
+
+  // Sync markers, polylines, and fit bounds whenever tree changes
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
 
     markersRef.current.forEach(m => m.remove())
     markersRef.current = []
+    polylinesRef.current.forEach(p => p.remove())
+    polylinesRef.current = []
 
     const flat: FlatWaypoint[] = []
-    flattenTree(tree, 0, true, false, flat, new Set())
+    flattenTree(tree, true, null, flat, new Set())
+    flatRef.current = flat
+
+    drawPolylines(tree, map, polylinesRef.current, new Set())
 
     flat.forEach(wp => {
-      const pulse = !wp.visited && !wp.isRoot && wp.parentVisited
+      const pulse = pulsingIdsRef.current.has(wp.id) && !wp.visited
+      const selected = selectedIdRef.current !== null && wp.id === selectedIdRef.current
       const marker = L.marker([wp.lat, wp.lon], {
-        icon: makeIcon(wp.colorIdx, wp.visited, wp.isRoot, pulse),
+        icon: makeIcon(wp.category, wp.visited, wp.isRoot, pulse, selected),
       })
         .addTo(map)
         .on('click', () => onWaypointClick(wp.node))
       markersRef.current.push(marker)
     })
 
-    if (flat.length > 0) {
+    if (flat.length > 0 && selectedIdRef.current === null) {
       const bounds = L.latLngBounds(flat.map(wp => [wp.lat, wp.lon] as L.LatLngTuple))
       map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 })
     }
   }, [tree, onWaypointClick])
+
+  // Update icons only when pulsingIds changes (no full rebuild)
+  useEffect(() => {
+    pulsingIdsRef.current = pulsingIds
+    flatRef.current.forEach((wp, i) => {
+      const marker = markersRef.current[i]
+      if (!marker) return
+      const pulse = pulsingIds.has(wp.id) && !wp.visited
+      const selected = selectedIdRef.current !== null && wp.id === selectedIdRef.current
+      marker.setIcon(makeIcon(wp.category, wp.visited, wp.isRoot, pulse, selected))
+    })
+  }, [pulsingIds])
+
+  // Update icons only when selectedId changes (no full rebuild)
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+    flatRef.current.forEach((wp, i) => {
+      const marker = markersRef.current[i]
+      if (!marker) return
+      const pulse = pulsingIdsRef.current.has(wp.id) && !wp.visited
+      const selected = selectedId !== null && wp.id === selectedId
+      marker.setIcon(makeIcon(wp.category, wp.visited, wp.isRoot, pulse, selected))
+    })
+  }, [selectedId])
+
+  // Pan to target when user clicks a node
+  useEffect(() => {
+    if (mapRef.current && panTarget)
+      mapRef.current.panTo([panTarget.lat, panTarget.lon], { animate: true })
+  }, [panTarget])
 
   return <div ref={containerRef} className="w-full h-full" />
 }

@@ -59,11 +59,12 @@ def create_single_waypoint() -> tuple[Response, int]:
     lon = payload.get("lon")
     name = payload.get("name")
     api_id = payload.get("api_id", None)
+    category = payload.get("category", None)
 
     if lat is None or lon is None or name is None or api_id is None:
         return jsonify({"error": "lat, lon, name, and api_id are required"}), 400
 
-    waypoint = create_waypoint(g.db, api_id, lat, lon, name)
+    waypoint = create_waypoint(g.db, api_id, lat, lon, name, category=category)
     return jsonify(waypoint.to_dict()), 201
 
 
@@ -103,7 +104,7 @@ def create_from_osm() -> tuple[Response, int]:
     created = []
     for r in results:
         waypoint = create_waypoint(
-            g.db, api_id=str(r["id"]), lat=r["lat"], lon=r["lon"], name=r["name"]
+            g.db, api_id=str(r["id"]), lat=r["lat"], lon=r["lon"], name=r["name"], category=r.get("category")
         )
         created.append(waypoint.to_dict())
 
