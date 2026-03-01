@@ -4,6 +4,7 @@ import { type User, getUser } from './api/user'
 import { Header } from './components/Header/Header'
 import { Map } from './components/Map/Map'
 import { WaypointPanel } from './components/WaypointPanel/WaypointPanel'
+import { SidePanel } from './components/SidePanel/SidePanel'
 import { ErrorModal } from './components/ErrorModal/ErrorModal'
 
 const ALL_USER_IDS = [1, 2, 3, 4]
@@ -26,7 +27,6 @@ export function App() {
   const [selected, setSelected] = useState<WaypointTree | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [visiting, setVisiting] = useState(false)
-  // pulseParentId: temporary signal — after tree refresh, add this node's new children to pulsingIds
   const [pulseParentId, setPulseParentId] = useState<number | null>(null)
   const [pulsingIds, setPulsingIds] = useState<Set<number>>(new Set())
   const [panTarget, setPanTarget] = useState<WaypointTree | null>(null)
@@ -73,7 +73,6 @@ export function App() {
   const handleWaypointClick = useCallback((waypoint: WaypointTree) => {
     setSelected(waypoint)
     setSelectedId(waypoint.id)
-    // Remove only this node from the pulsing set — others keep pulsing
     setPulsingIds(prev => {
       if (!prev.has(waypoint.id)) return prev
       const next = new Set(prev)
@@ -83,15 +82,13 @@ export function App() {
     setPanTarget(waypoint)
   }, [])
 
-  async function handleVisited(id: number) {
-    if (!selected) return
-    setPulseParentId(selected.id) // tree-sync effect will pulse new children after refresh
+  async function handleVisited(waypoint: WaypointTree) {
+    setPulseParentId(waypoint.id)
     setVisiting(true)
     try {
-      await setVisited(id)
-      if (selected.children.length === 0) {
-        await exploreWaypoint(userId, selected.id, selected.lat, selected.lon)
-      }
+      await setVisited(waypoint.id)
+      if (waypoint.children.length === 0)
+        await exploreWaypoint(userId, waypoint.id, waypoint.lat, waypoint.lon)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -109,12 +106,23 @@ export function App() {
     setUserId(id)
   }
 
+  const isRoot = !!(tree && selected?.id === tree.id)
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
       <Header username={user?.username ?? '…'} userId={userId} users={users} onUserSwitch={handleUserSwitch} />
       <main className="flex-1 relative overflow-hidden">
         {tree ? (
-          <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} onWaypointClick={handleWaypointClick} />
+          <>
+            <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} onWaypointClick={handleWaypointClick} />
+            <SidePanel
+              tree={tree}
+              selectedId={selectedId}
+              visiting={visiting}
+              onWaypointClick={handleWaypointClick}
+              onVisited={handleVisited}
+            />
+          </>
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             Loading…
@@ -124,6 +132,7 @@ export function App() {
       {selected && (
         <WaypointPanel
           waypoint={selected}
+          isRoot={isRoot}
           visiting={visiting}
           onVisited={handleVisited}
           onClose={() => { if (!visiting) { setSelected(null); setSelectedId(null) } }}

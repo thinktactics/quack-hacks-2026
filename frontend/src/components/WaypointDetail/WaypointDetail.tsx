@@ -81,7 +81,7 @@ export function WaypointDetail({ waypoint, visiting, onVisited, onClose }: Props
             disabled={visiting}
             onClick={() => onVisited(waypoint.id)}
           >
-            {visiting ? 'Finding nearby spots…' : 'I went here!'}
+            {visiting ? 'Exploring…' : 'I went here!'}
           </button>
         )}
       </div>
