@@ -1,6 +1,7 @@
 """Waypoint API routes."""
 
 from flask import Blueprint, g, jsonify, request, Response
+from loguru import logger
 
 from backend.db.waypoint_queries import (
     add_children_to_waypoint,
@@ -43,6 +44,9 @@ def set_visited(waypoint_id: int) -> tuple[Response, int]:
     waypoint = set_waypoint_visited(g.db, waypoint_id, visited)
     if not waypoint:
         return jsonify({"error": "Waypoint not found"}), 404
+    logger.info(
+        f"Waypoint {waypoint_id} marked as {'visited' if visited else 'unvisited'}"
+    )
     return jsonify(waypoint.to_dict()), 200
 
 
@@ -56,8 +60,8 @@ def create_single_waypoint() -> tuple[Response, int]:
     name = payload.get("name")
     api_id = payload.get("api_id", None)
 
-    if lat is None or lon is None or name is None:
-        return jsonify({"error": "lat, lon, and name are required"}), 400
+    if lat is None or lon is None or name is None or api_id is None:
+        return jsonify({"error": "lat, lon, name, and api_id are required"}), 400
 
     waypoint = create_waypoint(g.db, api_id, lat, lon, name)
     return jsonify(waypoint.to_dict()), 201
@@ -77,6 +81,7 @@ def add_children(waypoint_id: int) -> tuple[Response, int]:
     waypoint = get_waypoint_query(g.db, waypoint_id)
     if not waypoint:
         return jsonify({"error": "Waypoint not found"}), 404
+    logger.info(f"Added {len(child_ids)} children to waypoint {waypoint_id}")
     return jsonify(waypoint.to_dict()), 200
 
 
@@ -91,15 +96,18 @@ def create_from_osm() -> tuple[Response, int]:
     if lat is None or lon is None:
         return jsonify({"error": "lat and lon are required"}), 400
 
-    rad = payload.get("rad", 500.0)
-    num = payload.get("num", 3)
+    num = payload.get("num", 10)
 
-    results = query_nearby(lat, lon, rad=rad, limit=num)
-    results = results[:num]
+    results = query_nearby(lat, lon, limit=num)
 
     created = []
     for r in results:
-        waypoint = create_waypoint(g.db, api_id=str(r["id"]), lat=r["lat"], lon=r["lon"], name=r["name"])
+        waypoint = create_waypoint(
+            g.db, api_id=str(r["id"]), lat=r["lat"], lon=r["lon"], name=r["name"]
+        )
         created.append(waypoint.to_dict())
 
+    logger.info(
+        f"Created {len(created)} waypoints from OSM query at ({lat:.4f}, {lon:.4f})"
+    )
     return jsonify(created), 201

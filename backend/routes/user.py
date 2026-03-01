@@ -1,6 +1,7 @@
 """User API routes."""
 
 from flask import Blueprint, g, jsonify, request, Response
+from loguru import logger
 
 from backend.db.user_queries import (
     create_user as create_user_query,
@@ -42,8 +43,11 @@ def create_user() -> tuple[Response, int]:
         username=str(username),
         lat=float(lat),
         lon=float(lon),
-        root_waypoint_id=int(root_waypoint_id) if root_waypoint_id is not None else None,
+        root_waypoint_id=(
+            int(root_waypoint_id) if root_waypoint_id is not None else None
+        ),
     )
+    logger.info(f"Created user '{username}' (id={user.id}) at ({lat:.4f}, {lon:.4f})")
     return jsonify(user.to_dict()), 201
 
 
@@ -60,4 +64,5 @@ def set_user_root(user_id: int) -> tuple[Response, int]:
     user = set_user_root_query(g.db, user_id, int(root_waypoint_id))
     if not user:
         return jsonify({"error": "User not found"}), 404
+    logger.info(f"User {user_id} assigned root waypoint {root_waypoint_id}")
     return jsonify(user.to_dict()), 200

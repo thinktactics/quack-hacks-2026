@@ -47,7 +47,7 @@ Skill tree app: explore local areas via *Waypoints* (location nodes).
 - `POST /api/waypoint` — Create a single waypoint; body: `{lat, lon, name, api_id?}`; returns created waypoint
 - `PATCH /api/waypoint/<id>/visited` — Mark waypoint as visited; body: `{visited: bool}` (default: `true`)
 - `PATCH /api/waypoint/<id>/children` — Add children to a waypoint; body: `{child_ids: int[]}`
-- `POST /api/waypoint/osm` — Query OSM and create waypoints; body: `{lat, lon, rad?, num?}`; creates and returns up to `num` new waypoints from nearby POIs
+- `POST /api/waypoint/osm` — Query Photon for nearby POIs and create waypoints; body: `{lat, lon, num?}`; returns up to `num` closest waypoints (sorted by distance)
 
 ## Project Structure
 
@@ -56,7 +56,7 @@ backend/
   models/       → User, Waypoint (SQLAlchemy ORM)
   db/           → query functions (get, create, add, delete)
   routes/       → Flask blueprints (user, waypoint) — simple CRUD only
-  services/     → OSM API calls (Overpass)
+  services/     → Photon API calls for POI discovery (distance-sorted results)
   app.py        → Flask init, blueprints
 frontend/src/
   api/
@@ -73,7 +73,7 @@ frontend/src/
 Business logic lives in `frontend/src/api/waypoint.ts`, not the backend:
 
 | Function | Description |
-|----------|-------------|
+| -------- | ----------- |
 | `createWaypoint(params)` | POST a single new waypoint |
 | `addChildren(parentId, childIds)` | Link child waypoints to a parent |
 | `discoverNearby(lat, lon, rad?, num?)` | Query OSM via backend, creates + returns new waypoints |

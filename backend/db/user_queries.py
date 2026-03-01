@@ -11,7 +11,11 @@ def get_user(session: Session, user_id: int) -> User | None:
 
 
 def create_user(
-    session: Session, username: str, lat: float, lon: float, root_waypoint_id: int | None = None
+    session: Session,
+    username: str,
+    lat: float,
+    lon: float,
+    root_waypoint_id: int | None = None,
 ) -> User:
     """Create and persist a user, optionally with a root waypoint."""
     user = User(username=username, lat=lat, lon=lon, root_waypoint_id=root_waypoint_id)

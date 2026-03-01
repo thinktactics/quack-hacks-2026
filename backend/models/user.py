@@ -27,7 +27,9 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(80), unique=True, index=True)
     lat: Mapped[float] = mapped_column(Float, index=True)
     lon: Mapped[float] = mapped_column(Float, index=True)
-    root_waypoint_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("waypoints.id"), nullable=True)
+    root_waypoint_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("waypoints.id"), nullable=True
+    )
 
     root_waypoint = relationship("Waypoint", foreign_keys=[root_waypoint_id])
 

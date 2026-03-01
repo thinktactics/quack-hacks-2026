@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from flask.testing import FlaskClient
 from loguru import logger
@@ -47,7 +47,9 @@ PROFILES = [
 ]
 
 
-def _api(client: FlaskClient, method: str, path: str, payload: dict | None = None) -> dict[str, Any]:
+def _api(
+    client: FlaskClient, method: str, path: str, payload: dict | None = None
+) -> dict[str, Any] | list[Any]:
     response = client.open(path=path, method=method, json=payload)
     data = response.get_json(silent=True) or {}
     if response.status_code >= 400:
@@ -92,26 +94,74 @@ def seed() -> None:
     with app.test_client() as client:
         for p in PROFILES:
             # Create user (no root yet)
-            user = _api(client, "POST", "/api/user", {"username": p["username"], "lat": p["lat"], "lon": p["lon"]})
+            user = cast(
+                dict[str, Any],
+                _api(
+                    client,
+                    "POST",
+                    "/api/user",
+                    {"username": p["username"], "lat": p["lat"], "lon": p["lon"]},
+                ),
+            )
 
             # Create root waypoint
-            root = _api(client, "POST", "/api/waypoint", {"api_id": p["api_id"], "lat": p["lat"], "lon": p["lon"], "name": p["name"]})
+            root = cast(
+                dict[str, Any],
+                _api(
+                    client,
+                    "POST",
+                    "/api/waypoint",
+                    {
+                        "api_id": p["api_id"],
+                        "lat": p["lat"],
+                        "lon": p["lon"],
+                        "name": p["name"],
+                    },
+                ),
+            )
 
             # Assign root to user
-            _api(client, "PATCH", f"/api/user/{user['id']}/root", {"root_waypoint_id": root["id"]})
+            _api(
+                client,
+                "PATCH",
+                f"/api/user/{user['id']}/root",
+                {"root_waypoint_id": root["id"]},
+            )
 
             # Mark root visited
-            _api(client, "PATCH", f"/api/waypoint/{root['id']}/visited", {"visited": True})
+            _api(
+                client,
+                "PATCH",
+                f"/api/waypoint/{root['id']}/visited",
+                {"visited": True},
+            )
 
             # Optionally discover and attach children via OSM
             if p["explore"]:
-                children = _api(client, "POST", "/api/waypoint/osm", {"lat": p["lat"], "lon": p["lon"], "num": 3})
+                children = cast(
+                    list[dict[str, Any]],
+                    _api(
+                        client,
+                        "POST",
+                        "/api/waypoint/osm",
+                        {"lat": p["lat"], "lon": p["lon"]},
+                    ),
+                )
                 child_ids = [w["id"] for w in children]
-                _api(client, "PATCH", f"/api/waypoint/{root['id']}/children", {"child_ids": child_ids})
+                _api(
+                    client,
+                    "PATCH",
+                    f"/api/waypoint/{root['id']}/children",
+                    {"child_ids": child_ids},
+                )
 
-            tree = _api(client, "GET", f"/api/waypoint/tree/{user['id']}")
+            tree = cast(
+                dict[str, Any], _api(client, "GET", f"/api/waypoint/tree/{user['id']}")
+            )
             node_count = 1 + len(tree.get("children", []))
-            logger.success(f"Seeded {p['username']} — root={root['id']} explored={p['explore']} nodes={node_count}")
+            logger.success(
+                f"Seeded {p['username']} — root={root['id']} explored={p['explore']} nodes={node_count}"
+            )
 
     logger.success("Seed complete.")
 
