@@ -18,7 +18,8 @@ HEADERS = {"User-Agent": "BR@NCH/1.0 (Skill Tree Explorer)"}
 
 PER_CATEGORY_LIMIT = 5  # Request many results per category
 
-POI_CATEGORIES = ["restaurant", "park", "museum", "cafe", "shop", "attraction"]
+POI_CATEGORIES = ["restaurant", "park", "museum", "cafe", "shop", "attraction",
+                    "natural", "tourism", "historic", "leisure", ]
 
 
 def _haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
