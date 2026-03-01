@@ -36,6 +36,7 @@ export function App() {
   const [sidebarVisitId, setSidebarVisitId] = useState<number | null>(null)
   const [radius, setRadius] = useState(500)
   const [fitTarget, setFitTarget] = useState<WaypointTree | null>(null)
+  const [loadingPos, setLoadingPos] = useState<{ lat: number; lon: number } | null>(null)
 
   function fetchTree(id: number) {
     setTree(null)
@@ -104,6 +105,7 @@ export function App() {
     setSidebarVisitId(null)
     setPulseParentId(waypoint.id)
     setVisiting(true)
+    setLoadingPos({ lat: waypoint.lat, lon: waypoint.lon })
     try {
       await setVisited(waypoint.id)
       if (waypoint.children.length === 0) {
@@ -117,6 +119,7 @@ export function App() {
     } finally {
       await fetchTree(userId)
       setVisiting(false)
+      setLoadingPos(null)
     }
   }
 
@@ -142,6 +145,7 @@ export function App() {
     setPanTarget(null)
     setJournal(null)
     setSidebarOpen(false)
+    setLoadingPos(null)
     setUserId(id)
   }
 
@@ -153,7 +157,7 @@ export function App() {
       <main className="flex-1 relative overflow-hidden">
         {tree ? (
           <>
-            <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} fitTarget={fitTarget} onWaypointClick={handleWaypointClick} />
+            <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} fitTarget={fitTarget} loadingPos={loadingPos} onWaypointClick={handleWaypointClick} />
             <SidePanel
               tree={tree}
               selectedId={selectedId}
