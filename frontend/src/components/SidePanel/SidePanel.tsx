@@ -24,11 +24,10 @@ interface Props {
   visiting: boolean
   open?: boolean
   onWaypointClick: (waypoint: WaypointTree) => void
-  onVisited: (waypoint: WaypointTree) => void
   onVisitRequest: (waypoint: WaypointTree) => void
 }
 
-export function SidePanel({ tree, selectedId, visiting, open, onWaypointClick, onVisited, onVisitRequest }: Props) {
+export function SidePanel({ tree, selectedId, visiting, open, onWaypointClick, onVisitRequest }: Props) {
   const items = useMemo(() => {
     const out: FlatItem[] = []
     flatten(tree, true, 0, out)
