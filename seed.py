@@ -39,7 +39,7 @@ PROFILES = [
     },
 ]
 
-ROOT_TARGET = 4   # children for the root waypoint
+ROOT_TARGET = 4  # children for the root waypoint
 CHILD_TARGET = (1, 2)  # random range for all other waypoints
 
 
@@ -99,11 +99,14 @@ def _explore(
 
     pool = cast(
         list[dict[str, Any]],
-        _api(client, "POST", "/api/waypoint/osm", {"lat": lat, "lon": lon, "num": target}),
+        _api(
+            client, "POST", "/api/waypoint/osm", {"lat": lat, "lon": lon, "num": target}
+        ),
     )
 
     fresh = [
-        w for w in pool
+        w
+        for w in pool
         if w.get("api_id") not in seen_api_ids and w["name"] not in seen_names
     ]
     children = fresh[:target]
@@ -126,8 +129,13 @@ def _explore(
     total = len(children)
     for child in children:
         total += _explore(
-            client, child["id"], child["lat"], child["lon"],
-            depth - 1, seen_api_ids, seen_names,
+            client,
+            child["id"],
+            child["lat"],
+            child["lon"],
+            depth - 1,
+            seen_api_ids,
+            seen_names,
             target=random.randint(*CHILD_TARGET),
         )
     return total
@@ -185,8 +193,13 @@ def seed() -> None:
                 seen_api_ids = {p["api_id"]}
                 seen_names = {p["name"]}
                 node_count += _explore(
-                    client, root["id"], p["lat"], p["lon"],
-                    depth, seen_api_ids, seen_names,
+                    client,
+                    root["id"],
+                    p["lat"],
+                    p["lon"],
+                    depth,
+                    seen_api_ids,
+                    seen_names,
                 )
 
             logger.success(
