@@ -1,37 +1,34 @@
 import { useEffect, useState } from 'react'
-import { type WaypointTree, getWaypointTree, markVisited } from './api/waypoint'
-import { generateMockChildren } from './mocks/generateChildren'
+import { type WaypointTree, getWaypointTree, setVisited } from './api/waypoint'
 import { NodeGraph } from './components/NodeGraph/NodeGraph'
 import { WaypointDetail } from './components/WaypointDetail/WaypointDetail'
 
 // TODO: replace with auth once login flow is built
 const USER_ID = 1
 
-/** Marks a node as visited and splices in new children — single recursive pass. */
-function applyVisited(node: WaypointTree, id: number, newChildren: WaypointTree[]): WaypointTree {
-  if (node.id === id) {
-    return { ...node, visited: true, children: [...node.children, ...newChildren] }
-  }
-  return { ...node, children: node.children.map((c) => applyVisited(c, id, newChildren)) }
-}
-
 export function App() {
   const [tree, setTree] = useState<WaypointTree | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<WaypointTree | null>(null)
+  const [visiting, setVisiting] = useState(false)
 
-  useEffect(() => {
-    getWaypointTree(USER_ID)
+  function fetchTree() {
+    return getWaypointTree(USER_ID)
       .then(setTree)
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Unknown error'))
-  }, [])
+  }
 
-  function handleVisited(id: number) {
-    if (!selected) return
-    markVisited(id)
-    const newChildren = generateMockChildren(selected)
-    setTree((prev) => (prev ? applyVisited(prev, id, newChildren) : prev))
-    setSelected((prev) => (prev?.id === id ? { ...prev, visited: true } : prev))
+  useEffect(() => { fetchTree() }, [])
+
+  async function handleVisited(id: number) {
+    setVisiting(true)
+    try {
+      await setVisited(id)
+      await fetchTree()
+    } finally {
+      setVisiting(false)
+      setSelected(null)
+    }
   }
 
   if (error) {
@@ -56,8 +53,9 @@ export function App() {
       {selected && (
         <WaypointDetail
           waypoint={selected}
+          visiting={visiting}
           onVisited={handleVisited}
-          onClose={() => setSelected(null)}
+          onClose={() => !visiting && setSelected(null)}
         />
       )}
     </>

@@ -22,13 +22,6 @@ export async function getWaypoint(id: number): Promise<Waypoint> {
   return res.json() as Promise<Waypoint>
 }
 
-/** Fetch child waypoint IDs for a given waypoint. */
-export async function getChildren(id: number): Promise<number[]> {
-  const res = await fetch(`/api/waypoint/${id}/children`)
-  if (!res.ok) throw new Error(`Failed to fetch children for waypoint ${id}: ${res.status}`)
-  return res.json() as Promise<number[]>
-}
-
 /**
  * Mark a waypoint visited and return the updated waypoint from the server.
  * Use this when you need the confirmed server state.

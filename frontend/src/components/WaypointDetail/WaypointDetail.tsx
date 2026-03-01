@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 
 interface Props {
   waypoint: WaypointTree
+  visiting: boolean
   onVisited: (id: number) => void
   onClose: () => void
 }
@@ -18,7 +19,7 @@ async function reverseGeocode(lat: number, lon: number): Promise<string> {
   return data.display_name ?? '—'
 }
 
-export function WaypointDetail({ waypoint, onVisited, onClose }: Props) {
+export function WaypointDetail({ waypoint, visiting, onVisited, onClose }: Props) {
   const [address, setAddress] = useState<string>('Loading address…')
 
   useEffect(() => {
@@ -76,10 +77,11 @@ export function WaypointDetail({ waypoint, onVisited, onClose }: Props) {
         {/* Visited button */}
         {!waypoint.visited && (
           <button
-            className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold py-2 transition-colors"
-            onClick={() => { onVisited(waypoint.id); onClose() }}
+            className="w-full rounded-lg bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2 transition-colors"
+            disabled={visiting}
+            onClick={() => onVisited(waypoint.id)}
           >
-            Visited!
+            {visiting ? 'Finding nearby spots…' : 'Visited!'}
           </button>
         )}
       </div>
