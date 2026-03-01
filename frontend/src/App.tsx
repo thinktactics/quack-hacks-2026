@@ -3,6 +3,7 @@ import { type WaypointTree, getWaypointTree, setVisited, exploreWaypoint } from 
 import { type User, getUser } from './api/user'
 import { saveJournalEntry, getJournalEntry } from './api/journal'
 import { Header } from './components/Header/Header'
+import { Landing } from './components/Landing/Landing'
 import { Map } from './components/Map/Map'
 import { WaypointPanel } from './components/WaypointPanel/WaypointPanel'
 import { SidePanel } from './components/SidePanel/SidePanel'
@@ -20,7 +21,7 @@ function findInTree(node: WaypointTree, id: number): WaypointTree | null {
 }
 
 export function App() {
-  const [userId, setUserId] = useState(1)
+  const [userId, setUserId] = useState<number | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [tree, setTree] = useState<WaypointTree | null>(null)
   const [user, setUser] = useState<User | null>(null)
@@ -51,7 +52,7 @@ export function App() {
       .then(results => setUsers(results.filter((u): u is User => u !== null)))
   }, [])
 
-  useEffect(() => { fetchTree(userId) }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (userId !== null) fetchTree(userId) }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-derive selected from selectedId whenever tree changes.
   // Also consume pulseParentId: add the parent's new unvisited children to pulsingIds.
@@ -101,6 +102,7 @@ export function App() {
   }, [])
 
   async function handleVisited(waypoint: WaypointTree, journalText?: string) {
+    if (userId === null) return
     setSidebarVisitId(null)
     setPulseParentId(waypoint.id)
     setVisiting(true)
@@ -145,11 +147,15 @@ export function App() {
     setUserId(id)
   }
 
+  if (userId === null) {
+    return <Landing users={users} onUserSelect={setUserId} />
+  }
+
   const isRoot = !!(tree && selected?.id === tree.id)
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
-      <Header username={user?.username ?? '…'} userId={userId} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} radius={radius} onRadiusChange={setRadius} />
+      <Header username={user?.username ?? '…'} userId={userId!} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} radius={radius} onRadiusChange={setRadius} onLogoClick={() => setUserId(null)} />
       <main className="flex-1 relative overflow-hidden">
         {tree ? (
           <>

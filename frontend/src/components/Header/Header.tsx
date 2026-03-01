@@ -19,9 +19,10 @@ interface Props {
   onToggleSidebar: () => void
   radius: number
   onRadiusChange: (meters: number) => void
+  onLogoClick: () => void
 }
 
-export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onToggleSidebar, radius, onRadiusChange }: Props) {
+export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onToggleSidebar, radius, onRadiusChange, onLogoClick }: Props) {
   const [dark, setDark] = useState(() => localStorage.getItem('theme') !== 'light')
 
   useEffect(() => {
@@ -39,7 +40,7 @@ export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onT
         >
           {sidebarOpen ? '✕' : '☰'}
         </button>
-        <span className="text-xl font-bold tracking-widest text-[#034078] dark:text-[#5aacdf]">BR@NCH</span>
+        <button onClick={onLogoClick} className="text-xl font-bold tracking-widest text-[#034078] dark:text-[#5aacdf] hover:opacity-70 transition-opacity">BR@NCH</button>
       </div>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <span>Radius:</span>
