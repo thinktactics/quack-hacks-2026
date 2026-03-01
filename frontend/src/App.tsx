@@ -35,6 +35,7 @@ export function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarVisitId, setSidebarVisitId] = useState<number | null>(null)
   const [radius, setRadius] = useState(500)
+  const [fitTarget, setFitTarget] = useState<WaypointTree | null>(null)
 
   function fetchTree(id: number) {
     setTree(null)
@@ -70,6 +71,8 @@ export function App() {
         const newIds = parent.children.filter(c => !c.visited).map(c => c.id)
         if (newIds.length > 0)
           setPulsingIds(prev => new Set([...prev, ...newIds]))
+        if (parent.children.length > 0)
+          setFitTarget(parent)
       }
       setPulseParentId(null)
     }
@@ -150,7 +153,7 @@ export function App() {
       <main className="flex-1 relative overflow-hidden">
         {tree ? (
           <>
-            <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} onWaypointClick={handleWaypointClick} />
+            <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} fitTarget={fitTarget} onWaypointClick={handleWaypointClick} />
             <SidePanel
               tree={tree}
               selectedId={selectedId}

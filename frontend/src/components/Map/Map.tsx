@@ -54,6 +54,7 @@ interface Props {
   selectedId: number | null
   panTarget: WaypointTree | null
   pulsingIds: Set<number>
+  fitTarget: WaypointTree | null
   onWaypointClick: (waypoint: WaypointTree) => void
 }
 
@@ -77,7 +78,7 @@ function tileUrl(dark: boolean) {
     : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
 }
 
-export function Map({ tree, selectedId, panTarget, pulsingIds, onWaypointClick }: Props) {
+export function Map({ tree, selectedId, panTarget, pulsingIds, fitTarget, onWaypointClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
   const tileLayerRef = useRef<L.TileLayer | null>(null)
@@ -179,6 +180,17 @@ export function Map({ tree, selectedId, panTarget, pulsingIds, onWaypointClick }
       marker.setIcon(makeIcon(wp.category, wp.visited, wp.isRoot, pulse, selected))
     })
   }, [selectedId])
+
+  // After visiting a node, fit bounds to include it and all its new children.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !fitTarget) return
+    const points: L.LatLngTuple[] = [
+      [fitTarget.lat, fitTarget.lon],
+      ...fitTarget.children.map(c => [c.lat, c.lon] as L.LatLngTuple),
+    ]
+    map.fitBounds(L.latLngBounds(points), { padding: [80, 80], maxZoom: 15, animate: true })
+  }, [fitTarget])
 
   // Pan to target when user clicks a node.
   // On mobile, offset the center so the target lands at ~1/3 from the top
