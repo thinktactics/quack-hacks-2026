@@ -35,8 +35,9 @@ export function App() {
   const [journal, setJournal] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarVisitId, setSidebarVisitId] = useState<number | null>(null)
-  const [radius, setRadius] = useState(500)
+  const [radius, setRadius] = useState(5000)
   const [fitTarget, setFitTarget] = useState<WaypointTree | null>(null)
+  const [pageVisible, setPageVisible] = useState(true)
 
   function fetchTree(id: number) {
     setTree(null)
@@ -82,7 +83,7 @@ export function App() {
   // Fetch journal entry when a visited waypoint is selected; clear otherwise.
   useEffect(() => {
     if (selected?.visited) {
-      getJournalEntry(selected.id, userId).then(entry => setJournal(entry?.content ?? null)).catch(() => setJournal(null))
+      getJournalEntry(selected.id, userId || 0).then(entry => setJournal(entry?.content ?? null)).catch(() => setJournal(null))
     } else {
       setJournal(null)
     }
@@ -147,51 +148,64 @@ export function App() {
     setUserId(id)
   }
 
-  if (userId === null) {
-    return <Landing users={users} onUserSelect={setUserId} />
+  function handleUserSelect(id: number) {
+    setPageVisible(false)
+    setTimeout(() => {
+      setUserId(id)
+      requestAnimationFrame(() => requestAnimationFrame(() => setPageVisible(true)))
+    }, 500)
   }
 
   const isRoot = !!(tree && selected?.id === tree.id)
 
   return (
-    <div className="flex flex-col h-screen w-screen overflow-hidden">
-      <Header username={user?.username ?? '…'} userId={userId!} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} radius={radius} onRadiusChange={setRadius} onLogoClick={() => setUserId(null)} />
-      <main className="flex-1 relative overflow-hidden">
-        {tree ? (
-          <>
-            <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} fitTarget={fitTarget} onWaypointClick={handleWaypointClick} />
-            <SidePanel
-              tree={tree}
-              selectedId={selectedId}
+    <div
+      className="transition-opacity duration-500"
+      style={{ opacity: pageVisible ? 1 : 0 }}
+    >
+      {userId === null ? (
+        <Landing users={users} onUserSelect={handleUserSelect} />
+      ) : (
+        <div className="flex flex-col h-screen w-screen overflow-hidden">
+          <Header username={user?.username ?? '…'} userId={userId!} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} radius={radius} onRadiusChange={setRadius} onLogoClick={() => setUserId(null)} />
+          <main className="flex-1 relative overflow-hidden">
+            {tree ? (
+              <>
+                <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} fitTarget={fitTarget} onWaypointClick={handleWaypointClick} />
+                <SidePanel
+                  tree={tree}
+                  selectedId={selectedId}
+                  visiting={visiting}
+                  open={sidebarOpen}
+                  onWaypointClick={handleWaypointClick}
+                  onVisited={handleVisited}
+                  onVisitRequest={handleSidebarVisitRequest}
+                />
+              </>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Loading…
+              </div>
+            )}
+          </main>
+          {selected && (
+            <WaypointPanel
+              waypoint={selected}
+              isRoot={isRoot}
               visiting={visiting}
-              open={sidebarOpen}
-              onWaypointClick={handleWaypointClick}
+              journal={journal}
+              autoJournal={sidebarVisitId === selected?.id && !selected?.visited}
               onVisited={handleVisited}
-              onVisitRequest={handleSidebarVisitRequest}
+              onClose={() => { if (!visiting) { setSelected(null); setSelectedId(null) } }}
             />
-          </>
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            Loading…
-          </div>
-        )}
-      </main>
-      {selected && (
-        <WaypointPanel
-          waypoint={selected}
-          isRoot={isRoot}
-          visiting={visiting}
-          journal={journal}
-          autoJournal={sidebarVisitId === selected?.id && !selected?.visited}
-          onVisited={handleVisited}
-          onClose={() => { if (!visiting) { setSelected(null); setSelectedId(null) } }}
-        />
-      )}
-      {error && (
-        <ErrorModal
-          message={error}
-          onReload={() => window.location.reload()}
-        />
+          )}
+          {error && (
+            <ErrorModal
+              message={error}
+              onReload={() => window.location.reload()}
+            />
+          )}
+        </div>
       )}
     </div>
   )
