@@ -49,13 +49,13 @@ function makeIcon(category: string | null, visited: boolean, isRoot: boolean, pu
   })
 }
 
-function makeLoadingIcon(): L.DivIcon {
+function makeLoadingIcon(color: string): L.DivIcon {
   return L.divIcon({
     className: '',
     html: `<div style="position:relative;width:24px;height:24px;overflow:visible;">
-      <div class="explore-ping"></div>
-      <div class="explore-ping" style="animation-delay:0.75s"></div>
-      <div class="explore-ping" style="animation-delay:1.5s"></div>
+      <div class="explore-ping" style="border-color:${color}"></div>
+      <div class="explore-ping" style="border-color:${color};animation-delay:0.75s"></div>
+      <div class="explore-ping" style="border-color:${color};animation-delay:1.5s"></div>
     </div>`,
     iconSize: [24, 24],
     iconAnchor: [12, 12],
@@ -68,7 +68,7 @@ interface Props {
   panTarget: WaypointTree | null
   pulsingIds: Set<number>
   fitTarget: WaypointTree | null
-  loadingPos: { lat: number; lon: number } | null
+  loadingPos: { lat: number; lon: number; category: string | null; visited: boolean; isRoot: boolean } | null
   onWaypointClick: (waypoint: WaypointTree) => void
 }
 
@@ -99,6 +99,7 @@ export function Map({ tree, selectedId, panTarget, pulsingIds, fitTarget, loadin
   const markersRef = useRef<L.Marker[]>([])
   const polylinesRef = useRef<L.Polyline[]>([])
   const loadingMarkerRef = useRef<L.Marker | null>(null)
+  const loadingInfoRef = useRef<{ category: string | null; visited: boolean; isRoot: boolean } | null>(null)
   const flatRef = useRef<FlatWaypoint[]>([])
   const pulsingIdsRef = useRef<Set<number>>(pulsingIds)
   const selectedIdRef = useRef<number | null>(selectedId)
@@ -141,6 +142,10 @@ export function Map({ tree, selectedId, panTarget, pulsingIds, fitTarget, loadin
         const selected = selectedIdRef.current !== null && wp.id === selectedIdRef.current
         marker.setIcon(makeIcon(wp.category, wp.visited, wp.isRoot, pulse, selected))
       })
+      if (loadingMarkerRef.current && loadingInfoRef.current) {
+        const { category, visited, isRoot } = loadingInfoRef.current
+        loadingMarkerRef.current.setIcon(makeLoadingIcon(categoryColor(category, visited, isRoot)))
+      }
     })
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
     return () => observer.disconnect()
@@ -218,11 +223,15 @@ export function Map({ tree, selectedId, panTarget, pulsingIds, fitTarget, loadin
   useEffect(() => {
     loadingMarkerRef.current?.remove()
     loadingMarkerRef.current = null
+    loadingInfoRef.current = null
     const map = mapRef.current
     if (!map || !loadingPos) return
-    const m = L.marker([loadingPos.lat, loadingPos.lon], { icon: makeLoadingIcon(), zIndexOffset: 1000 }).addTo(map)
+    const { lat, lon, category, visited, isRoot } = loadingPos
+    loadingInfoRef.current = { category, visited, isRoot }
+    const color = categoryColor(category, visited, isRoot)
+    const m = L.marker([lat, lon], { icon: makeLoadingIcon(color), zIndexOffset: 1000 }).addTo(map)
     loadingMarkerRef.current = m
-    return () => { m.remove(); loadingMarkerRef.current = null }
+    return () => { m.remove(); loadingMarkerRef.current = null; loadingInfoRef.current = null }
   }, [loadingPos])
 
   // Pan to target when user clicks a node.
