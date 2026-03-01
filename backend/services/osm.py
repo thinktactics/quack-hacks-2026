@@ -225,8 +225,7 @@ def query_nearby(
         )
         current_radius = next_radius
 
-    # Randomly select up to limit results
-    sample = random.sample(results, min(limit, len(results)))
+    results.sort(key=lambda p: p["distance"])
     final_results = [
         {
             "id": poi["id"],
@@ -235,10 +234,10 @@ def query_nearby(
             "lon": poi["lon"],
             "category": poi["category"],
         }
-        for poi in sample
+        for poi in results[:limit]
     ]
 
     logger.info(
-        f"Returning {len(final_results)} closest POIs from {len(results)} total found"
+        f"Returning {len(final_results)} closest POIs (sorted by distance) from {len(results)} total found"
     )
     return final_results
