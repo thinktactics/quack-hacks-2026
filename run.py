@@ -35,7 +35,7 @@ def main() -> None:
     logger.info(f"Python: {platform.python_version()}")
     logger.info(f"DATABASE_URL: {DATABASE_URL}")
 
-    port = int(os.getenv("PORT", "5000"))
+    port = int(os.getenv("PORT", "8000"))
     debug = os.getenv("FLASK_DEBUG", "1") == "1"
 
     logger.info(f"Starting server on http://127.0.0.1:{port} (debug={debug})")
