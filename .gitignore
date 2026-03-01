@@ -46,6 +46,7 @@ __pypackages__/
 node_modules/
 .env.local
 .env.*.local
+dist
 
 # Database
 *.db
