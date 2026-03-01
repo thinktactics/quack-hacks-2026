@@ -6,26 +6,32 @@ import { Map } from './components/Map/Map'
 import { WaypointPanel } from './components/WaypointPanel/WaypointPanel'
 import { ErrorModal } from './components/ErrorModal/ErrorModal'
 
-// TODO: replace with auth once login flow is built
-const USER_ID = 1
+const ALL_USER_IDS = [1, 2, 3, 4]
 
 export function App() {
+  const [userId, setUserId] = useState(1)
+  const [users, setUsers] = useState<User[]>([])
   const [tree, setTree] = useState<WaypointTree | null>(null)
   const [user, setUser] = useState<User | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<WaypointTree | null>(null)
   const [visiting, setVisiting] = useState(false)
 
-  function fetchTree() {
-    return getWaypointTree(USER_ID)
+  function fetchTree(id: number) {
+    setTree(null)
+    setError(null)
+    getUser(id).then(setUser).catch(() => setUser(null))
+    return getWaypointTree(id)
       .then(setTree)
       .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Unknown error'))
   }
 
   useEffect(() => {
-    getUser(USER_ID).then(setUser).catch(() => {})
-    fetchTree()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    Promise.all(ALL_USER_IDS.map(id => getUser(id).catch(() => null)))
+      .then(results => setUsers(results.filter((u): u is User => u !== null)))
+  }, [])
+
+  useEffect(() => { fetchTree(userId) }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleVisited(id: number) {
     if (!selected) return
@@ -35,16 +41,21 @@ export function App() {
       if (selected.children.length === 0) {
         await exploreWaypoint(id, selected.lat, selected.lon)
       }
-      await fetchTree()
+      await fetchTree(userId)
     } finally {
       setVisiting(false)
       setSelected(null)
     }
   }
 
+  function handleUserSwitch(id: number) {
+    setSelected(null)
+    setUserId(id)
+  }
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
-      <Header username={user?.username ?? '…'} />
+      <Header username={user?.username ?? '…'} userId={userId} users={users} onUserSwitch={handleUserSwitch} />
       <main className="flex-1 relative overflow-hidden">
         {tree ? (
           <Map tree={tree} onWaypointClick={setSelected} />
