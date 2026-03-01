@@ -49,6 +49,7 @@ node_modules/
 dist
 
 # Database
+*.db.start
 *.db
 *.sqlite
 *.sqlite3
