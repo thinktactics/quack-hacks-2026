@@ -50,7 +50,9 @@ def set_visited(waypoint_id: int) -> tuple[Response, int]:
     if visited and not waypoint.children:
         new_ids: list[int] = []
         try:
-            logger.info(f"Waypoint {waypoint_id} marked visited with no children - querying OSM")
+            logger.info(
+                f"Waypoint {waypoint_id} marked visited with no children - querying OSM"
+            )
             nearby = query_nearby(waypoint.lat, waypoint.lon, rad=500.0, limit=10)
             logger.info(f"Found {len(nearby)} nearby POIs")
 
@@ -65,7 +67,9 @@ def set_visited(waypoint_id: int) -> tuple[Response, int]:
                         new_ids.append(child.id)
                         logger.info(f"Created child waypoint {child.id}: {child.name}")
                     except Exception as child_error:
-                        logger.warning(f"Skipping POI due to create error: {child_error}")
+                        logger.warning(
+                            f"Skipping POI due to create error: {child_error}"
+                        )
             else:
                 logger.warning(f"No nearby POIs found for waypoint {waypoint_id}")
         except Exception as e:
@@ -75,6 +79,8 @@ def set_visited(waypoint_id: int) -> tuple[Response, int]:
             updated = add_children_to_waypoint(g.db, waypoint_id, new_ids)
             if updated:
                 waypoint = updated
-                logger.info(f"Successfully added {len(new_ids)} children to waypoint {waypoint_id}")
+                logger.info(
+                    f"Successfully added {len(new_ids)} children to waypoint {waypoint_id}"
+                )
 
     return jsonify(waypoint.to_dict()), 200

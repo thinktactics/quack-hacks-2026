@@ -64,7 +64,9 @@ def _recreate_sqlite_db_file_if_needed() -> None:
     database_url = os.getenv("DATABASE_URL", "sqlite:///branch.db")
     prefix = "sqlite:///"
     if not database_url.startswith(prefix):
-        logger.warning("Skipping DB file deletion: DATABASE_URL is not a sqlite file URL.")
+        logger.warning(
+            "Skipping DB file deletion: DATABASE_URL is not a sqlite file URL."
+        )
         return
 
     db_path = Path(database_url.removeprefix(prefix))
