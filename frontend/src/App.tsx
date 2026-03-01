@@ -123,7 +123,7 @@ export function App() {
     ) {
       const numChildren = treeRef.current?.id === waypoint.id ? 4 : Math.floor(Math.random() * 2) + 1
       prefetchPromiseRef.current = exploreWaypoint(
-        userIdRef.current, waypoint.id, waypoint.lat, waypoint.lon,
+        userIdRef.current || 0, waypoint.id, waypoint.lat, waypoint.lon,
         radiusRef.current, numChildren,
       )
         .then(() => { prefetchedIds.current.add(waypoint.id) })
@@ -214,7 +214,7 @@ export function App() {
           <main className="flex-1 relative overflow-hidden">
             {tree ? (
               <>
-                <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} fitTarget={fitTarget} onWaypointClick={handleWaypointClick} />
+                <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} fitTarget={fitTarget} loadingPos={loadingPos} onWaypointClick={handleWaypointClick} />
                 <SidePanel
                   tree={tree}
                   selectedId={selectedId}
@@ -235,15 +235,6 @@ export function App() {
             <WaypointPanel
               waypoint={selected}
               isRoot={isRoot}
-    <div className="flex flex-col h-screen w-screen overflow-hidden">
-      <Header username={user?.username ?? '…'} userId={userId} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} radius={radius} onRadiusChange={setRadius} />
-      <main className="flex-1 relative overflow-hidden">
-        {tree ? (
-          <>
-            <Map tree={tree} selectedId={selectedId} panTarget={panTarget} pulsingIds={pulsingIds} fitTarget={fitTarget} loadingPos={loadingPos} onWaypointClick={handleWaypointClick} />
-            <SidePanel
-              tree={tree}
-              selectedId={selectedId}
               visiting={visiting}
               journal={journal}
               autoJournal={sidebarVisitId === selected?.id && !selected?.visited}
