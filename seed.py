@@ -14,7 +14,7 @@ from backend.models.waypoint import Waypoint
 
 PROFILES = [
     {
-        "username": "city_runner",
+        "username": "nyc_transplant",
         "api_id": "seed/nyc/times-square",
         "name": "Times Square",
         "lat": 40.758896,
@@ -22,20 +22,28 @@ PROFILES = [
         "explore_depth": 2,
     },
     {
-        "username": "desert_astronomer",
-        "api_id": "seed/az/lowell-observatory",
-        "name": "Lowell Observatory",
-        "lat": 35.2028,
-        "lon": -111.6646,
-        "explore_depth": 0,
+        "username": "leg_exec_jud",
+        "api_id": "seed/dc/white-house",
+        "name": "The White House",
+        "lat": 38.8977,
+        "lon": -77.0365,
+        "explore_depth": 2,
     },
     {
-        "username": "hacker",
+        "username": "steve_q_hacker",
         "api_id": "seed/nj/castle-point-terrace",
         "name": "1 Castle Point Terrace",
         "lat": 40.7453,
         "lon": -74.0247,
         "explore_depth": 0,
+    },
+    {
+        "username": "silicon_valley",
+        "api_id": "seed/ca/345-spear-st",
+        "name": "Google",
+        "lat": 37.7886,
+        "lon": -122.3918,
+        "explore_depth": 1,
     },
 ]
 
@@ -95,12 +103,13 @@ def _explore(
     if depth == 0:
         return 0
 
-    _api(client, "PATCH", f"/api/waypoint/{waypoint_id}/visited", {"visited": True})
-
     pool = cast(
         list[dict[str, Any]],
         _api(
-            client, "POST", "/api/waypoint/osm", {"lat": lat, "lon": lon, "num": target}
+            client,
+            "POST",
+            "/api/waypoint/osm",
+            {"lat": lat, "lon": lon, "num": target, "radius": 5000},
         ),
     )
 
@@ -113,6 +122,8 @@ def _explore(
 
     if not children:
         return 0
+
+    _api(client, "PATCH", f"/api/waypoint/{waypoint_id}/visited", {"visited": True})
 
     for w in children:
         if w.get("api_id"):
