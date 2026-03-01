@@ -16,7 +16,6 @@ Skill tree app: explore local areas via *Waypoints* (location nodes).
 | ----- | ---- | ----- |
 | id | int | Primary key |
 | username | str | Unique, indexed |
-| password | str | Hashed (bcrypt) |
 | root_waypoint_id | int | FK → Waypoint |
 
 ### Waypoint
@@ -33,19 +32,18 @@ Skill tree app: explore local areas via *Waypoints* (location nodes).
 
 ## API Endpoints
 
-### Current GET Routes
+### User Routes
 
-- `GET /api/user/<id>`
-- `GET /api/waypoint/<id>`
-- `GET /api/waypoint/tree/<user_id>`
+- `GET /api/user/<id>` — Fetch user by ID, returns `{id, username, root_waypoint_id}`
+- `POST /api/user` — Create user with `{username, root_waypoint_id}` (all required)
 
-### Current POST Routes
+### Waypoint Routes
 
-- `POST /api/user`
-
-### Current PATCH Routes
-
-- `PATCH /api/waypoint/<id>/visited`
+- `GET /api/waypoint/<id>` — Fetch waypoint by ID, returns flat waypoint with child IDs
+- `GET /api/waypoint/tree/<user_id>` — Fetch nested waypoint tree for user (recursive children)
+- `PATCH /api/waypoint/<id>/visited` — Mark waypoint as visited
+  - Body: `{visited: bool}` (default: `true`)
+  - **Auto-discovery:** If `visited=true` and waypoint has no children, queries OSM for 1-3 nearby POIs (500m radius) and auto-creates child waypoints
 
 ## Project Structure
 
@@ -65,10 +63,11 @@ frontend/src/
 
 ## Setup
 
-1. Activate venv: `.\.venv\Scripts\Activate.ps1`
+1. Activate venv: `.\.venv\Scripts\Activate.ps1` (Windows) or `source .venv/bin/activate` (Linux/macOS)
 2. Install deps: `pip install -r backend/requirements.txt`
-3. Configure MySQL connection in app config
-4. Run: `flask run`
+3. Optional: Set `DATABASE_URL` env var (default: `sqlite:///branch.db`)
+4. Run: `python run.py` or `flask run`
+5. Seed data: `python seed.py`
 
 ## Coding Philosophy
 

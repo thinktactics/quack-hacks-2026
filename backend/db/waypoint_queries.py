@@ -1,6 +1,7 @@
 """Database query helpers for waypoints and tree expansion."""
 
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from backend.db.user_queries import get_user
 from backend.models.waypoint import Waypoint, TreeDict
@@ -22,6 +23,33 @@ def set_waypoint_visited(
     session.commit()
     session.refresh(waypoint)
     return waypoint
+
+
+def create_waypoint(
+    session: Session, api_id: str, lat: float, lon: float, name: str
+) -> Waypoint:
+    """Create and persist a new waypoint."""
+    waypoint = Waypoint(
+        api_id=api_id, lat=lat, lon=lon, name=name, children=[], visited=False
+    )
+    session.add(waypoint)
+    session.commit()
+    session.refresh(waypoint)
+    return waypoint
+
+
+def add_children_to_waypoint(
+    session: Session, parent_id: int, child_ids: list[int]
+) -> Waypoint | None:
+    """Append child IDs to a parent waypoint's children list."""
+    parent = get_waypoint(session, parent_id)
+    if not parent:
+        return None
+    parent.children.extend(child_ids)
+    flag_modified(parent, "children")
+    session.commit()
+    session.refresh(parent)
+    return parent
 
 
 def _build_tree(session: Session, waypoint_id: int, seen: set[int]) -> TreeDict | None:
