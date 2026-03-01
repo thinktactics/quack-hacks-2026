@@ -8,6 +8,7 @@ export interface Waypoint {
     name: string;
     children: number[];
     visited: boolean;
+    visited_at: string | null;
     category: string | null;
 }
 
@@ -19,6 +20,7 @@ export interface WaypointTree {
     name: string;
     children: WaypointTree[];
     visited: boolean;
+    visited_at: string | null;
     category: string | null;
 }
 

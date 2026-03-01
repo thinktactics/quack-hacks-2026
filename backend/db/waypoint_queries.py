@@ -1,5 +1,7 @@
 """Database query helpers for waypoints and tree expansion."""
 
+from datetime import datetime
+
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -20,6 +22,7 @@ def set_waypoint_visited(
     if not waypoint:
         return None
     waypoint.visited = visited
+    waypoint.visited_at = datetime.utcnow() if visited else None
     session.commit()
     session.refresh(waypoint)
     return waypoint
@@ -76,6 +79,7 @@ def _build_tree(session: Session, waypoint_id: int, seen: set[int]) -> TreeDict 
         "id": waypoint.id,
         "children": child_nodes,
         "visited": waypoint.visited,
+        "visited_at": waypoint.visited_at.isoformat() if waypoint.visited_at else None,
         "api_id": waypoint.api_id,
         "lat": waypoint.lat,
         "lon": waypoint.lon,

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { type WaypointTree, getWaypointTree, setVisited, exploreWaypoint } from './api/waypoint'
 import { type User, getUser } from './api/user'
+import { saveJournalEntry, getJournalEntry } from './api/journal'
 import { Header } from './components/Header/Header'
 import { Map } from './components/Map/Map'
 import { WaypointPanel } from './components/WaypointPanel/WaypointPanel'
@@ -30,6 +31,9 @@ export function App() {
   const [pulseParentId, setPulseParentId] = useState<number | null>(null)
   const [pulsingIds, setPulsingIds] = useState<Set<number>>(new Set())
   const [panTarget, setPanTarget] = useState<WaypointTree | null>(null)
+  const [journal, setJournal] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarVisitId, setSidebarVisitId] = useState<number | null>(null)
 
   function fetchTree(id: number) {
     setTree(null)
@@ -70,9 +74,19 @@ export function App() {
     }
   }, [tree]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fetch journal entry when a visited waypoint is selected; clear otherwise.
+  useEffect(() => {
+    if (selected?.visited) {
+      getJournalEntry(selected.id, userId).then(entry => setJournal(entry?.content ?? null)).catch(() => setJournal(null))
+    } else {
+      setJournal(null)
+    }
+  }, [selected?.id, selected?.visited, userId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleWaypointClick = useCallback((waypoint: WaypointTree) => {
     setSelected(waypoint)
     setSelectedId(waypoint.id)
+    setSidebarOpen(false)
     setPulsingIds(prev => {
       if (!prev.has(waypoint.id)) return prev
       const next = new Set(prev)
@@ -82,13 +96,16 @@ export function App() {
     setPanTarget(waypoint)
   }, [])
 
-  async function handleVisited(waypoint: WaypointTree) {
+  async function handleVisited(waypoint: WaypointTree, journalText?: string) {
+    setSidebarVisitId(null)
     setPulseParentId(waypoint.id)
     setVisiting(true)
     try {
       await setVisited(waypoint.id)
       if (waypoint.children.length === 0)
         await exploreWaypoint(userId, waypoint.id, waypoint.lat, waypoint.lon)
+      if (journalText)
+        await saveJournalEntry(waypoint.id, userId, journalText)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -97,12 +114,28 @@ export function App() {
     }
   }
 
+  function handleSidebarVisitRequest(waypoint: WaypointTree) {
+    setSidebarOpen(false)
+    setSelected(waypoint)
+    setSelectedId(waypoint.id)
+    setSidebarVisitId(waypoint.id)
+  }
+
+  function handleToggleSidebar() {
+    setSidebarOpen(prev => {
+      if (!prev) { setSelected(null); setSelectedId(null) }
+      return !prev
+    })
+  }
+
   function handleUserSwitch(id: number) {
     setSelected(null)
     setSelectedId(null)
     setPulseParentId(null)
     setPulsingIds(new Set())
     setPanTarget(null)
+    setJournal(null)
+    setSidebarOpen(false)
     setUserId(id)
   }
 
@@ -110,7 +143,7 @@ export function App() {
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden">
-      <Header username={user?.username ?? '…'} userId={userId} users={users} onUserSwitch={handleUserSwitch} />
+      <Header username={user?.username ?? '…'} userId={userId} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} />
       <main className="flex-1 relative overflow-hidden">
         {tree ? (
           <>
@@ -119,8 +152,10 @@ export function App() {
               tree={tree}
               selectedId={selectedId}
               visiting={visiting}
+              open={sidebarOpen}
               onWaypointClick={handleWaypointClick}
               onVisited={handleVisited}
+              onVisitRequest={handleSidebarVisitRequest}
             />
           </>
         ) : (
@@ -134,6 +169,8 @@ export function App() {
           waypoint={selected}
           isRoot={isRoot}
           visiting={visiting}
+          journal={journal}
+          autoJournal={sidebarVisitId === selected?.id && !selected?.visited}
           onVisited={handleVisited}
           onClose={() => { if (!visiting) { setSelected(null); setSelectedId(null) } }}
         />

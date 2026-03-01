@@ -22,11 +22,13 @@ interface Props {
   tree: WaypointTree
   selectedId: number | null
   visiting: boolean
+  open?: boolean
   onWaypointClick: (waypoint: WaypointTree) => void
   onVisited: (waypoint: WaypointTree) => void
+  onVisitRequest: (waypoint: WaypointTree) => void
 }
 
-export function SidePanel({ tree, selectedId, visiting, onWaypointClick, onVisited }: Props) {
+export function SidePanel({ tree, selectedId, visiting, open, onWaypointClick, onVisited, onVisitRequest }: Props) {
   const items = useMemo(() => {
     const out: FlatItem[] = []
     flatten(tree, true, 0, out)
@@ -36,7 +38,7 @@ export function SidePanel({ tree, selectedId, visiting, onWaypointClick, onVisit
   const visitedCount = items.filter(i => i.visited).length
 
   return (
-    <div className="hidden md:flex absolute inset-y-0 left-0 w-72 z-[1000]">
+    <div className={cn("absolute inset-y-0 left-0 w-72 z-[1000]", open ? "flex" : "hidden md:flex")}>
       {/* Panel body */}
       <div className="flex-1 flex flex-col bg-card/80 backdrop-blur-md border-r border-border overflow-hidden">
 
@@ -96,7 +98,7 @@ export function SidePanel({ tree, selectedId, visiting, onWaypointClick, onVisit
                   <button
                     className="mt-2 w-full border border-[#034078] text-[#034078] hover:bg-[#034078] hover:text-white disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold py-1.5 transition-colors tracking-widest uppercase"
                     disabled={visiting}
-                    onClick={e => { e.stopPropagation(); onWaypointClick(wp.node); onVisited(wp.node) }}
+                    onClick={e => { e.stopPropagation(); onVisitRequest(wp.node) }}
                   >
                     {visiting && isSelected ? 'Exploring…' : 'I went here!'}
                   </button>
