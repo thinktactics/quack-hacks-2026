@@ -46,6 +46,7 @@ export function CategoryFilter({ selected, onChange }: Props) {
               key={cat}
               checked={selected.includes(cat)}
               onCheckedChange={() => toggle(cat)}
+              onSelect={e => e.preventDefault()}
               className="capitalize"
             >
               {cat}

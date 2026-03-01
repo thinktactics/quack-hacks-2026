@@ -56,6 +56,7 @@ export function Header({ username, userId, users, onUserSwitch, sidebarOpen, onT
           className="w-16 bg-transparent border border-border/40 hover:border-border px-2 py-0.5 text-center text-sm outline-none focus:border-border"
         />
         <span>km</span>
+        <span className="w-4" />
         <CategoryFilter selected={categories} onChange={onCategoriesChange} />
       </div>
       <div className="flex items-center gap-4">

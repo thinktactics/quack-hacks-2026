@@ -71,6 +71,10 @@
   pointer-events: none;
 }
 
+html.dark input[type="number"] {
+  color-scheme: dark;
+}
+
 @layer base {
   * {
     @apply border-border box-border;
