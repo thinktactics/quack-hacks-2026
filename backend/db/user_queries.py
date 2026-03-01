@@ -10,6 +10,16 @@ def get_user(session: Session, user_id: int) -> User | None:
     return session.query(User).filter(User.id == user_id).first()
 
 
+def list_users(session: Session) -> list[User]:
+    """Return all users sorted by ID."""
+    return session.query(User).order_by(User.id.asc()).all()
+
+
+def get_user_by_username(session: Session, username: str) -> User | None:
+    """Return a user by username, or None if not found."""
+    return session.query(User).filter(User.username == username).first()
+
+
 def create_user(
     session: Session,
     username: str,

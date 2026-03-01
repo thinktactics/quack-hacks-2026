@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { type WaypointTree, getWaypointTree, setVisited, exploreWaypoint, prepareChildren, addChildren } from './api/waypoint'
-import { type User, getUser } from './api/user'
+import { type User, getUser, listUsers } from './api/user'
 import { saveJournalEntry, getJournalEntry } from './api/journal'
 import { Header } from './components/Header/Header'
 import { ALL_CATEGORIES, type Category } from './components/Header/CategoryFilter'
@@ -9,8 +9,6 @@ import { Map } from './components/Map/Map'
 import { WaypointPanel } from './components/WaypointPanel/WaypointPanel'
 import { SidePanel } from './components/SidePanel/SidePanel'
 import { ErrorModal } from './components/ErrorModal/ErrorModal'
-
-const ALL_USER_IDS = [1, 2, 3, 4]
 
 function findInTree(node: WaypointTree, id: number): WaypointTree | null {
   if (node.id === id) return node
@@ -69,8 +67,9 @@ export function App() {
   }
 
   useEffect(() => {
-    Promise.all(ALL_USER_IDS.map(id => getUser(id).catch(() => null)))
-      .then(results => setUsers(results.filter((u): u is User => u !== null)))
+    listUsers()
+      .then(setUsers)
+      .catch(() => setUsers([]))
   }, [])
 
   useEffect(() => { if (userId !== null) fetchTree(userId) }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -214,6 +213,14 @@ export function App() {
     }, 500)
   }
 
+  function handleUserCreated(createdUser: User) {
+    setUsers(prev => {
+      const filtered = prev.filter(userItem => userItem.id !== createdUser.id)
+      return [...filtered, createdUser].sort((a, b) => a.id - b.id)
+    })
+    handleUserSelect(createdUser.id)
+  }
+
   const isRoot = !!(tree && selected?.id === tree.id)
 
   return (
@@ -222,7 +229,7 @@ export function App() {
       style={{ opacity: pageVisible ? 1 : 0 }}
     >
       {userId === null ? (
-        <Landing users={users} onUserSelect={handleUserSelect} />
+        <Landing users={users} onUserSelect={handleUserSelect} onUserCreated={handleUserCreated} />
       ) : (
         <div className="flex flex-col h-screen w-screen overflow-hidden">
           <Header username={user?.username ?? '…'} userId={userId!} users={users} onUserSwitch={handleUserSwitch} sidebarOpen={sidebarOpen} onToggleSidebar={handleToggleSidebar} radius={radius} onRadiusChange={setRadius} onLogoClick={() => setUserId(null)} categories={categories} onCategoriesChange={setCategories} />

@@ -6,10 +6,21 @@ from loguru import logger
 from backend.db.user_queries import (
     create_user as create_user_query,
     get_user as get_user_query,
+    get_user_by_username as get_user_by_username_query,
+    list_users as list_users_query,
     set_user_root as set_user_root_query,
 )
+from backend.services.osm import search_address
 
 user_bp = Blueprint("user", __name__, url_prefix="/api/user")
+
+
+# GET /api/user
+@user_bp.route("", methods=["GET"])
+def list_users() -> tuple[Response, int]:
+    """Return all users."""
+    users = list_users_query(g.db)
+    return jsonify([user.to_dict() for user in users]), 200
 
 
 # GET /api/user/<id>
@@ -38,6 +49,9 @@ def create_user() -> tuple[Response, int]:
             400,
         )
 
+    if get_user_by_username_query(g.db, str(username)) is not None:
+        return jsonify({"error": "username already exists"}), 409
+
     user = create_user_query(
         g.db,
         username=str(username),
@@ -49,6 +63,29 @@ def create_user() -> tuple[Response, int]:
     )
     logger.info(f"Created user '{username}' (id={user.id}) at ({lat:.4f}, {lon:.4f})")
     return jsonify(user.to_dict()), 201
+
+
+# GET /api/user/address-search?q=<query>&limit=<n>
+@user_bp.route("/address-search", methods=["GET"])
+def address_search() -> tuple[Response, int]:
+    """Return geocoded address suggestions from Photon."""
+    query = request.args.get("q", "").strip()
+    limit_str = request.args.get("limit", "5")
+    if not query:
+        return jsonify({"error": "q is required"}), 400
+
+    try:
+        limit = max(1, min(int(limit_str), 10))
+    except ValueError:
+        return jsonify({"error": "limit must be an integer"}), 400
+
+    try:
+        results = search_address(query, limit=limit)
+    except Exception:
+        logger.exception("Address search failed")
+        return jsonify({"error": "address search failed"}), 502
+
+    return jsonify(results), 200
 
 
 # PATCH /api/user/<id>/root
