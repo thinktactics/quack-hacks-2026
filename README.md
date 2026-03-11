@@ -2,6 +2,8 @@
 
 > **A skill tree for real-life exploration.**
 
+**Tech Demo:** https://www.youtube.com/watch?v=gwusX6i9o64
+
 BR@NCH is an interactive map app that brings the skill tree mechanic into the real world. Start somewhere — your home, your favourite café, anywhere — and let the app branch outward, surfacing nearby places worth discovering. Mark them visited, and the tree keeps growing.
 
 Built for **QuackHacks 2026** by Matt Mammano, Nick Messina, Nick Mirigliani, and Rishi Raj.
